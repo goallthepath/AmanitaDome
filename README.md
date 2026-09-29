@@ -206,6 +206,6 @@ The numbers are geometry, not engineering. Check loads, snow, wind, fixings and 
 
 <div align="center">
 
-made by one person · MIT licensed · grown on the forest floor 🍄
+© 2026 goallthepath · MIT licensed · grown on the forest floor 🍄
 
 </div>
