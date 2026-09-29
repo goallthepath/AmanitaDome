@@ -1,0 +1,1321 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Amanita Dome · geodesic dome configurator</title>
+<meta name="description" content="Amanita Dome: a single-file geodesic dome configurator. Icosahedral, octahedral and tetrahedral domes, class I and II, 1V to 12V, cut lists, panel and strut drawings, build guide and PDF workshop sheet.">
+<meta property="og:title" content="Amanita Dome">
+<meta property="og:description" content="Geodesic dome configurator with cut lists, drawings, an animated build and a PDF workshop sheet. Seven mushrooms are hidden somewhere.">
+<meta property="og:image" content="https://goallthepath.github.io/AmanitaDome/docs/screenshot.png">
+<meta property="og:url" content="https://goallthepath.github.io/AmanitaDome/">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Cpath d='M7 27 C7 10 41 10 41 27 Z' fill='%23D2532B'/%3E%3Ccircle cx='15' cy='21' r='2.2' fill='%23FBF3E4'/%3E%3Ccircle cx='25' cy='14.5' r='2.6' fill='%23FBF3E4'/%3E%3Ccircle cx='34' cy='21.5' r='1.9' fill='%23FBF3E4'/%3E%3Cpath d='M18.5 27 L17.5 43 Q24 45 30.5 43 L29.5 27 Z' fill='%23F4EAD3'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;1,9..144,300;1,9..144,400&family=Karla:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500&family=Caveat:wght@500&display=swap">
+<style>
+/* Layout: an open sketchbook page on light beige, deliberately one theme only (it stays beige in dark mode too).
+   Title and a short note, one thin toolbar in two rows, the dome very large on a pale sand ground,
+   then measurements and the cut list side by side as plain lists with hairline rules. */
+:root{
+  color-scheme:light;
+  --bg:#F3EBD8;           /* light beige, steppe in flat morning light */
+  --fg:#2E2B22;
+  --muted:#807861;
+  --faint:#B3AA91;
+  --line:#E2D7BC;
+  --line-strong:#CDBF9A;
+  --ochre:#C28E2E;
+  --ochre-ink:#94651A;
+  --red:#D2532B;           /* fly-agaric red-orange, the accent */
+  --red-ink:#A73C1B;
+  --red-wash:#F6D9C9;
+  --green:#6F7E3F;
+  --green-ink:#4A5628;
+  --face-lit:#E6E9CC;     /* dome faces in sun */
+  --face-dark:#8E9B60;    /* dome faces in shade */
+  --hub:#6D5A2E;
+  --ground:#E8DCB8;
+  --ground-edge:#D2C08E;
+  --pencil:#7A6C4B;       /* dimension marks */
+  --label-bg:#FBF6E9;
+  --control:#FBF6E9;
+  --s0:#D2532B; --s1:#3E7A3A; --s2:#E8B324; --s3:#2A6F9E; --s4:#8B44B8; --s5:#5C2E12; --s6:#E06AA0; --s7:#1F8C8C; --s8:#A8A21A; --s9:#2B2B2B;
+  --display:"Fraunces","Iowan Old Style",Georgia,serif;
+  --body:"Karla","Helvetica Neue",Arial,sans-serif;
+  --mono:"JetBrains Mono",Menlo,Consolas,monospace;
+  --hand:"Caveat","Segoe Print","Bradley Hand",cursive;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--body);font-size:16px;line-height:1.55;-webkit-font-smoothing:antialiased}
+.page{position:relative;z-index:1;max-width:1400px;margin:0 auto;padding-inline:clamp(18px,3vw,40px);padding-block:14px 72px;pointer-events:none}
+.page>*{pointer-events:auto}
+#dome{position:fixed;inset:0;width:100%;height:100%;z-index:0;touch-action:none;cursor:grab;display:block}
+#dome.dragging{cursor:grabbing}
+.deck{display:grid;grid-template-columns:240px minmax(0,1fr) 230px;gap:24px;min-height:calc(100vh - 92px);pointer-events:none}
+.side{display:grid;gap:14px;align-content:start;pointer-events:auto}
+.side.right{align-content:end}
+.mid{position:relative;pointer-events:none;min-height:420px}
+.mid .play,.mid .hint{pointer-events:auto}
+@media(max-width:960px){.deck{grid-template-columns:1fr;min-height:0}.mid{min-height:62vh}.side.right{align-content:start}.side{grid-template-columns:1fr 1fr}.side .tool{min-width:0}}
+
+header{display:flex;flex-wrap:wrap;gap:6px 28px;align-items:center;justify-content:space-between;margin-bottom:10px}
+.kicker{margin:0;font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+h1{margin:0;font-family:var(--display);font-weight:300;font-size:clamp(30px,4vw,46px);line-height:1;letter-spacing:-.015em;text-wrap:balance}
+h1 i{font-style:italic;font-weight:300;color:var(--red)}
+.brand{display:flex;align-items:center;gap:10px}
+.logo{width:40px;height:40px;flex:none}
+.intro{margin:0;max-width:52ch;color:var(--muted);font-size:16px;line-height:1.5}
+.intro b{color:var(--fg);font-weight:500}
+
+.tool{display:grid;gap:5px}
+.tool>span,.tool>label>span{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.pills{display:flex;flex-wrap:wrap;gap:4px}
+.pills button{appearance:none;border:1px solid var(--line-strong);background:rgba(251,246,233,.5);color:var(--fg);font:500 13px var(--mono);
+  min-width:36px;padding:0 8px;height:32px;border-radius:999px;cursor:pointer;transition:background .15s,border-color .15s}
+.pills button:hover{border-color:var(--red)}
+.pills button[aria-pressed="true"]{background:var(--red);border-color:var(--red);color:#fff}
+.num{display:flex;align-items:center;gap:6px}
+input[type=number],select{font:500 14px var(--mono);height:32px;padding:0 10px;border:1px solid var(--line-strong);border-radius:6px;background:rgba(251,246,233,.55);color:var(--fg);max-width:100%}
+select{width:100%}
+input[type=number]{width:78px}
+.num em{font-style:normal;font-family:var(--mono);font-size:13px;color:var(--muted)}
+.views{display:flex;flex-wrap:wrap;gap:2px 12px}
+.views label{display:inline-flex;align-items:center;gap:6px;font-size:14px;cursor:pointer;color:var(--fg);height:28px;white-space:nowrap}
+.views input{width:15px;height:15px;accent-color:var(--red);margin:0}
+:is(button,input,select,canvas):focus-visible{outline:2px solid var(--red);outline-offset:2px}
+
+.play{position:absolute;left:0;top:0;display:inline-flex;align-items:center;gap:8px;appearance:none;border:1px solid var(--line-strong);background:var(--label-bg);color:var(--fg);font:500 13px var(--body);padding:7px 14px 7px 10px;border-radius:999px;cursor:pointer;z-index:2}
+.play:hover{border-color:var(--red);color:var(--red-ink)}
+.play svg{width:14px;height:14px;fill:var(--red)}
+.zoomhint{position:absolute;right:0;top:10px;font:400 11px var(--mono);color:var(--faint);letter-spacing:.06em;text-transform:uppercase}
+.split{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px 48px;margin-top:40px;align-items:start}
+.dock{min-height:74vh;pointer-events:none}
+@media(max-width:960px){.split{grid-template-columns:1fr}.dock{display:none}}
+.guide{margin-top:28px}
+.guide h2{margin:0 0 8px;font-family:var(--display);font-weight:400;font-size:26px;letter-spacing:-.01em}
+.guide .status{font-family:var(--mono);font-size:13px;color:var(--red-ink);min-height:20px;margin:0 0 12px}
+.guide ol{margin:0;padding:0;list-style:none;counter-reset:step}
+.guide li{counter-increment:step;display:grid;grid-template-columns:34px 1fr;gap:10px;padding:9px 0;border-bottom:1px solid var(--line);font-size:15px;transition:background .2s}
+.guide li::before{content:counter(step,decimal-leading-zero);font-family:var(--mono);font-size:12px;color:var(--faint);padding-top:3px}
+.guide li b{font-weight:500}
+.guide li small{display:block;color:var(--muted);font-size:13px;margin-top:2px}
+.guide li.active{background:rgba(246,217,201,.7);margin:0 -10px;padding-inline:10px;border-radius:4px}
+.guide li.active::before{color:var(--red)}
+.guide li.done::before{color:var(--green)}
+.guide p.lead{margin:0 0 10px;color:var(--muted);font-size:15px;max-width:60ch}
+.hint{position:absolute;left:0;right:0;bottom:6px;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;font-family:var(--mono);font-size:12px;color:var(--faint);padding:0 4px}
+.hint span+span{color:var(--muted)}
+.legend{display:inline-flex;flex-wrap:wrap;gap:4px 10px;align-items:center}
+.legend i{display:inline-flex;align-items:center;gap:5px;font-style:normal;font:500 12px var(--mono);color:var(--fg)}
+.legend i b{display:inline-block;width:14px;height:14px;border-radius:3px;border:1px solid rgba(46,43,34,.35)}
+@media print{#dome,#basket,.dock,.play,.zoomhint,.shroom{display:none!important}.page{pointer-events:auto}.split,.deck{grid-template-columns:1fr!important;min-height:0}.side{grid-template-columns:1fr 1fr 1fr}}
+
+.sheets{display:grid;grid-template-columns:1fr;gap:36px}
+.guide,.sheets,.drawings,.notes{background:transparent}
+.sheet{min-width:0}
+.sheet h2{margin:0 0 14px;font-family:var(--display);font-weight:400;font-size:26px;letter-spacing:-.01em;display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+.sheet h2 small{font-family:var(--mono);font-size:12px;color:var(--muted);letter-spacing:.04em;text-align:right}
+.sheet.wide{max-width:760px}
+dl{margin:0}
+dl div{display:flex;justify-content:space-between;align-items:baseline;gap:16px;padding:9px 0;border-bottom:1px solid var(--line)}
+dl div.gap{margin-top:14px}
+dt{color:var(--muted);font-size:15px}
+dd{margin:0;font-family:var(--mono);font-size:15px;font-variant-numeric:tabular-nums;text-align:right}
+dd u{text-decoration:none;color:var(--muted);font-size:12px;margin-left:4px}
+.tablewrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+th{text-align:left;font:400 11px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);padding:0 8px 8px 0;border-bottom:1px solid var(--line-strong);white-space:nowrap}
+td{padding:9px 8px 9px 0;border-bottom:1px solid var(--line);font-family:var(--mono);font-size:15px;white-space:nowrap}
+th.r,td.r{text-align:right}
+th:last-child,td:last-child{padding-right:0}
+td.t{font-family:var(--display);font-size:20px;font-weight:500;display:flex;align-items:center;gap:10px}
+.sw{display:inline-block;width:22px;height:3px;border-radius:2px}
+tfoot td{border-bottom:0;border-top:1px solid var(--line-strong);color:var(--muted)}
+tfoot td.r{color:var(--fg)}
+.row{display:flex;align-items:center;gap:14px;margin-top:16px}
+.btn{appearance:none;border:1px solid var(--line-strong);background:transparent;color:var(--fg);font:500 14px var(--body);padding:8px 14px;border-radius:999px;cursor:pointer}
+.btn:hover{border-color:var(--red);color:var(--red-ink)}
+.toast{font-family:var(--mono);font-size:12px;color:var(--green)}
+.notes{margin-top:0;padding-top:22px;border-top:1px solid var(--line-strong);max-width:68ch;color:var(--muted);font-size:15px}
+.notes h3{margin:0 0 8px;font-family:var(--display);font-weight:400;font-size:20px;color:var(--fg)}
+.notes p{margin:0 0 10px}
+.notes code{font-family:var(--mono);font-size:13px;color:var(--ochre-ink)}
+.drawings{margin-top:48px}
+.drawings h2{margin:0 0 6px;font-family:var(--display);font-weight:400;font-size:26px;letter-spacing:-.01em}
+.drawings p.sub{margin:0 0 18px;color:var(--muted);font-size:14px;max-width:70ch}
+.dwg-grid{display:grid;grid-template-columns:1fr;gap:18px}
+.dwg{border:1px solid var(--line-strong);background:rgba(251,246,233,.45);border-radius:4px;padding:10px 12px 6px;min-width:0}
+.dwg svg{width:100%;height:auto;display:block;font-family:var(--mono);font-size:11px}
+.dwg .tb{display:flex;justify-content:space-between;align-items:baseline;gap:10px;border-top:1px solid var(--line);margin-top:4px;padding-top:6px;font-family:var(--mono);font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.dwg .tb b{font-family:var(--display);font-size:22px;font-weight:500;color:var(--fg);text-transform:none;letter-spacing:0}
+/* the mushrooms and the basket */
+.shroom{display:inline-block;width:18px;height:18px;vertical-align:-3px;margin:0 2px;cursor:grab;opacity:.75;touch-action:none;user-select:none;transition:transform .2s,opacity .2s}
+.shroom:hover{opacity:1;transform:scale(1.25) rotate(-8deg)}
+.shroom.gone{visibility:hidden}
+@keyframes grow{0%{transform:scale(0) rotate(-40deg);opacity:0}70%{transform:scale(1.3) rotate(6deg);opacity:1}100%{transform:scale(1) rotate(0)}}
+.shroom.regrow{animation:grow 1.1s cubic-bezier(.3,1.4,.5,1) both}
+.shroom.ghost{position:fixed;left:0;top:0;width:34px;height:34px;transform:translate(-50%,-60%) rotate(-10deg);opacity:1;pointer-events:none;z-index:50;filter:drop-shadow(0 4px 6px rgba(0,0,0,.25))}
+body.carrying{cursor:grabbing}
+#basket{position:fixed;right:18px;bottom:18px;width:64px;height:58px;z-index:40;opacity:.45;transition:opacity .25s,transform .25s;cursor:default}
+#basket:hover,body.carrying #basket{opacity:1}
+#basket.near{transform:scale(1.18)}
+#basket svg{width:100%;height:100%;display:block}
+#bcount{position:absolute;right:-4px;top:-6px;font:500 11px var(--mono);background:var(--red);color:#fff;border-radius:999px;padding:1px 6px}
+/* the trip */
+@keyframes hue{from{filter:hue-rotate(0deg) saturate(1.7) contrast(1.05)}to{filter:hue-rotate(360deg) saturate(1.7) contrast(1.05)}}
+@keyframes wobble{0%,100%{transform:skewX(0deg) scale(1)}25%{transform:skewX(1.4deg) scale(1.012) rotate(.3deg)}50%{transform:skewX(0deg) scale(.992)}75%{transform:skewX(-1.4deg) scale(1.012) rotate(-.3deg)}}
+@keyframes bgmove{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+@keyframes breathe{0%,100%{letter-spacing:-.015em}50%{letter-spacing:.06em}}
+body.trip{background:linear-gradient(120deg,#F6D9C9,#E4E9CF,#F5E7C4,#F9D0E0,#D9E8F5,#F6D9C9);background-size:400% 400%;animation:bgmove 3s ease-in-out infinite}
+body.trip .page{animation:hue 2.6s linear infinite,wobble 1.8s ease-in-out infinite;transform-origin:50% 40vh}
+body.trip h1{animation:breathe 2.2s ease-in-out infinite}
+body.trip.forever{animation-duration:9s}
+body.trip.forever .page{animation:hue 8s linear infinite,wobble 5s ease-in-out infinite}
+body.trip.forever h1{animation-duration:6s}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><symbol id="cap" viewBox="0 0 48 48">
+  <path d="M7 27 C7 10 41 10 41 27 Z" fill="#D2532B"/>
+  <circle cx="15" cy="21" r="2.2" fill="#FBF3E4"/><circle cx="25" cy="14.5" r="2.6" fill="#FBF3E4"/><circle cx="34" cy="21.5" r="1.9" fill="#FBF3E4"/><circle cx="22" cy="23" r="1.3" fill="#FBF3E4"/><circle cx="31" cy="16" r="1.1" fill="#FBF3E4"/>
+  <path d="M18.5 27 L17.5 43 Q24 45 30.5 43 L29.5 27 Z" fill="#F4EAD3" stroke="#7A6C4B" stroke-width="1"/>
+  <ellipse cx="24" cy="27" rx="17" ry="2.6" fill="#F9F1DF" stroke="#7A6C4B" stroke-width="1"/>
+</symbol></svg>
+<canvas id="dome" tabindex="0" aria-label="Rotatable 3D view of the dome"></canvas>
+<div class="page">
+  <header>
+    <div class="brand">
+        <svg class="logo" viewBox="0 0 48 48" aria-hidden="true">
+          <path d="M7 27 C7 10 41 10 41 27 Z" fill="var(--red)"/>
+          <circle cx="15" cy="21" r="2.2" fill="#FBF3E4"/><circle cx="25" cy="14.5" r="2.6" fill="#FBF3E4"/><circle cx="34" cy="21.5" r="1.9" fill="#FBF3E4"/><circle cx="22" cy="23" r="1.3" fill="#FBF3E4"/><circle cx="31" cy="16" r="1.1" fill="#FBF3E4"/>
+          <path d="M18.5 27 L17.5 43 Q24 45 30.5 43 L29.5 27 Z" fill="#F4EAD3" stroke="#7A6C4B" stroke-width="1"/>
+          <ellipse cx="24" cy="27" rx="17" ry="2.6" fill="#F9F1DF" stroke="#7A6C4B" stroke-width="1"/>
+          <path d="M18 31 Q24 33 30 31" fill="none" stroke="#7A6C4B" stroke-width="1"/>
+        </svg>
+        <h1>Amanita <i>Dome</i></h1>
+    </div>
+    <p class="kicker">Geodesic dome calculator · icosahedral, octahedral, tetrahedral · class I &amp; II <svg class="shroom" data-id="1" aria-label="a small fly agaric"><use href="#cap"/></svg></p>
+  </header>
+
+  <div class="deck">
+    <aside class="side left" aria-label="Dome parameters">
+      <div class="tool"><label for="solid"><span>Base solid</span></label>
+        <select id="solid"><option value="icosahedron">Icosahedron</option><option value="octahedron">Octahedron</option><option value="tetrahedron">Tetrahedron</option></select></div>
+      <div class="tool"><span id="lbl-c">Class</span>
+        <div class="pills" role="group" aria-labelledby="lbl-c" id="cls">
+          <button type="button" data-c="1" id="c1" aria-pressed="true">I</button>
+          <button type="button" data-c="2" id="c2">II</button>
+        </div></div>
+      <div class="tool"><span id="lbl-f">Frequency</span>
+        <div class="pills" role="group" aria-labelledby="lbl-f" id="freq">
+          <button type="button" data-f="1" id="f1">1V</button>
+          <button type="button" data-f="2" id="f2">2V</button>
+          <button type="button" data-f="3" id="f3" aria-pressed="true">3V</button>
+          <button type="button" data-f="4" id="f4">4V</button>
+          <button type="button" data-f="5" id="f5">5V</button>
+          <button type="button" data-f="6" id="f6">6V</button>
+        </div></div>
+      <div class="tool"><label for="top"><span>On top</span></label>
+        <select id="top"><option value="vertex">Vertex</option><option value="edge">Edge</option><option value="face">Face</option></select></div>
+      <div class="tool"><label for="method"><span>Subdivision</span></label>
+        <select id="method"><option value="chords">Equal chords</option><option value="arcs">Equal arcs</option></select></div>
+      <div class="tool"><label for="cut"><span>Cut at row</span></label><select id="cut"></select></div>
+      <div class="tool"><span id="lbl-m">Assembly</span>
+        <div class="pills" role="group" aria-labelledby="lbl-m" id="mode">
+          <button type="button" data-m="struts" aria-pressed="true">Struts &amp; hubs</button>
+          <button type="button" data-m="triangles">Triangle frames</button>
+        </div></div>
+      <div class="tool"><label for="radius"><span>Sphere radius</span></label>
+        <div class="num"><input type="number" id="radius" value="5" min="0.1" step="0.1" inputmode="decimal"><em>m</em></div></div>
+    </aside>
+
+    <div class="mid" id="mid">
+      <button class="play" type="button" id="play" aria-label="Play the build"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 2 L14 8 L3 14 Z"/></svg><span>Build it</span></button>
+      <span class="zoomhint">scroll up or pinch to zoom · drag to turn</span>
+      <div class="hint"><span><span id="tag"></span> &nbsp; <span class="legend" id="legend"></span></span><span><span id="footinfo"></span> <svg class="shroom" data-id="3" aria-label="a small fly agaric"><use href="#cap"/></svg></span></div>
+    </div>
+
+    <aside class="side right" aria-label="Timber and display">
+      <div class="tool"><label for="allow"><span>Hub allowance, each end</span></label>
+        <div class="num"><input type="number" id="allow" value="0" min="0" step="1" inputmode="numeric"><em>mm</em></div></div>
+      <div class="tool"><label for="width"><span>Timber section, width × depth</span></label>
+        <div class="num"><input type="number" id="width" value="45" min="5" step="1" inputmode="numeric"><em>×</em><input type="number" id="depth" value="95" min="5" step="1" inputmode="numeric"><em>mm</em></div></div>
+      <div class="tool"><label for="ptimber"><span>Prices, timber per m · hub each</span></label>
+        <div class="num"><input type="number" id="ptimber" value="4" min="0" step="0.5" inputmode="decimal"><em>·</em><input type="number" id="phub" value="6" min="0" step="0.5" inputmode="decimal"><em>¤</em></div></div>
+      <div class="tool"><span>Show</span>
+        <div class="views">
+          <label><input type="checkbox" id="showFaces" checked> faces</label>
+          <label><input type="checkbox" id="showStruts" checked> timber</label>
+          <label><input type="checkbox" id="showHubs" checked> hubs</label>
+          <label><input type="checkbox" id="showLabels" checked> strut letters</label>
+          <label><input type="checkbox" id="showDims" checked> dimensions</label>
+          <label><input type="checkbox" id="spin" checked> slow turn</label>
+          <svg class="shroom" data-id="2" aria-label="a small fly agaric"><use href="#cap"/></svg>
+        </div></div>
+    </aside>
+  </div>
+
+  <section class="guide split" aria-label="Build guide">
+    <div class="dock" aria-hidden="true"></div>
+    <div>
+      <h2>Build guide</h2>
+      <p class="lead">Press <b>Build it</b> above the dome: the finished frame swirls away, the view moves in, and the dome goes up in the order listed here. With <b>struts &amp; hubs</b> the struts rise one after another, row by row from the base. With <b>triangle frames</b> every triangle is first framed and covered on its own, spread out around the sphere, and the finished triangles are then drawn together. That takes about twice the timber (every inner edge has two struts side by side), but each panel can be covered on the bench.</p>
+      <p class="status" id="buildStatus"></p>
+      <ol id="steps"></ol>
+    </div>
+  </section>
+
+  <div class="split">
+  <div class="sheets">
+    <section class="sheet" aria-label="Measurements">
+      <h2>Measurements <small id="resHead"></small></h2>
+      <dl id="stats"></dl>
+      <p class="note" style="margin-top:10px;font-size:13px;color:var(--faint)">Timber volume assumes the section above; the mass figure uses 480 kg/m³, about right for dry spruce. <svg class="shroom" data-id="7" aria-label="a small fly agaric"><use href="#cap"/></svg></p>
+    </section>
+    <section class="sheet" aria-label="Cut list">
+      <h2>Cut list <small id="strutHead"></small></h2>
+      <div class="tablewrap">
+        <table id="strutTable">
+          <thead><tr><th>Strut</th><th class="r">Chord factor</th><th class="r">Hub to hub</th><th class="r">Cut length</th><th class="r">End angle</th><th class="r">Bevel</th><th class="r">Qty</th></tr></thead>
+          <tbody></tbody>
+          <tfoot></tfoot>
+        </table>
+      </div>
+      <div class="row"><button class="btn" type="button" id="copy">Copy cut list</button><button class="btn" type="button" id="pdf">Export PDF</button><span class="toast" id="toast" aria-live="polite"></span> <svg class="shroom" data-id="4" aria-label="a small fly agaric"><use href="#cap"/></svg></div>
+    </section>
+    <section class="sheet wide" aria-label="Panels">
+      <h2>Panels <small id="panelHead"></small></h2>
+      <div class="tablewrap">
+        <table id="panelTable">
+          <thead><tr><th>Panel</th><th class="r">Sides</th><th class="r">Area each</th><th class="r">Qty</th><th class="r">Area total</th></tr></thead>
+          <tbody></tbody><tfoot></tfoot>
+        </table>
+      </div>
+    </section>
+  </div>
+  <div class="dock" aria-hidden="true"></div>
+  </div>
+
+  <section class="drawings split" aria-label="Panel drawings">
+    <div>
+    <h2>Panel drawings</h2>
+    <p class="sub">Every distinct triangle drawn once, to scale, with its sides lettered and measured hub to hub, its corner angles and its area. With triangle frames the timber band is drawn inside the edges at the section you set.</p>
+    <div class="dwg-grid" id="paneldrawings"></div>
+    </div>
+    <div class="dock" aria-hidden="true"></div>
+  </section>
+
+  <section class="drawings split" aria-label="Strut drawings">
+    <div class="dock" aria-hidden="true"></div>
+    <div>
+    <h2>Strut drawings</h2>
+    <p class="sub">One sheet per strut type, drawn as a timber piece seen from the side (the depth face, where the end cuts show), with break lines because the piece is far longer than it is deep. The end angle is measured from square and assumes a flat hub plate sitting square to the sphere's radius. <svg class="shroom" data-id="5" aria-label="a small fly agaric"><use href="#cap"/></svg></p>
+    <div class="dwg-grid" id="drawings"></div>
+    </div>
+  </section>
+
+  <div class="split">
+  <aside class="notes">
+    <h3>A few notes before you cut anything</h3>
+    <p>Hub-to-hub lengths are <code>chord factor × radius</code>. The cut length has your hub allowance taken off both ends, so it's the number to mark on the timber or tube.</p>
+    <p>Class I is the usual triangle grid drawn parallel to the solid's edges; class II turns that grid by 30° (it's built by first splitting every face into three around its centre, so it only comes in even frequencies). Equal chords places the grid points on the flat face and pushes them out to the sphere; equal arcs spaces them evenly along the arcs instead, which usually evens out the strut lengths a little.</p>
+    <p>The cut always follows a row of hubs. With a vertex on top and an odd frequency (3V, 5V) that row isn't perfectly level, which is why the classic 3V 5/8 dome needs packing under a few feet. The base unevenness figure tells you how much. With an edge or a face on top the rows are rarely level at all, so treat the cut there as a starting point.</p>
+    <p>The end angle is <code>asin(chord factor / 2)</code>, the angle between the strut and the hub's tangent plane. Cut both ends at that angle, measured from square, and the outer face comes out longer than the inner face by <code>depth × tan(angle)</code>. If you use a pipe-and-hub system instead of flat plates, the same angle is the one you flatten and bend the pipe ends to.</p>
+    <p>The bevel is the angle to plane off the long edges of a strut so two neighbouring panels lie flat on it: half the fold between those panels. It varies a little within a strut type, so the table shows the mean.</p>
+    <p>Triangle frames: every triangle gets its own three struts, so an inner edge carries two struts side by side and the cut list counts both. The struts are inset by half their width so the pairs sit flush; corners are mitred in the plane of the triangle rather than cut for a hub.</p>
+    <p>For reference: an icosahedral class I 2V half dome comes out at 65 struts, a 3V 5/8 at 165, a 4V half at 250. <svg class="shroom" data-id="6" aria-label="a small fly agaric"><use href="#cap"/></svg></p>
+  </aside>
+  <div class="dock" aria-hidden="true"></div>
+  </div>
+</div>
+
+<div id="basket" title="a basket, for whatever you might find">
+  <svg viewBox="0 0 64 58" aria-hidden="true">
+    <path d="M14 20 Q32 4 50 20" fill="none" stroke="#7A6C4B" stroke-width="3" stroke-linecap="round"/>
+    <path d="M6 22 H58 L52 52 H12 Z" fill="#E5C77E" stroke="#7A6C4B" stroke-width="2" stroke-linejoin="round"/>
+    <path d="M12 30 H52 M13 38 H51 M14 46 H50" stroke="#B98426" stroke-width="1.5"/>
+    <path d="M20 22 L18 52 M32 22 V52 M44 22 L46 52" stroke="#B98426" stroke-width="1.5"/>
+  </svg>
+  <span id="bcount">0/7</span>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+/*
+ * ═══════════════════════════════════════════════════════════════════════════════
+ *   Hie hebet an das Werck der Fliegenpilz-Kuppel (Amanita Dome),
+ *   ein Rechen-Büchlein für geodætische Gewölbe,
+ *   geschrieben in der Sprach JavaScript, erkläret aber in alter teutscher Zungen.
+ * ═══════════════════════════════════════════════════════════════════════════════
+ *
+ *   Wisse, geneigter Leser: Eine geodætische Kuppel ist nichts anderes denn ein
+ *   Vielflach (ein „Polyeder"), dessen Dreyecke man so lang zertheilet, bis sie
+ *   klein genug sind, und dessen Ecken man alsdann auf die Kugel hinaus schiebet.
+ *   Was übrig bleibt, sind Stäbe (die „Streben") und Knoten (die „Naben").
+ *   Dieses Werck zählet die Streben, misset ihre Länge, ordnet sie nach Sorten
+ *   und mahlet das Gewölbe auf die Leinwand, auff daß man es drehen und
+ *   betrachten möge.
+ *
+ *   Das Werck ist in fünff Capitel geordnet:
+ *      I.   Vom Rechnen mit Pfeilen (Vectoren) im Raume
+ *      II.  Von den Grundkörpern und ihrer Zertheilung
+ *      III. Vom Schnitt, der aus der Kugel eine Kuppel machet
+ *      IV.  Von der Ausgabe in Worten und Zahlen
+ *      V.   Vom Mahlen auff die Leinwand und von der Bedienung
+ *
+ *   Alles ist in eine einzige Function eingeschlossen, damit kein Name in die
+ *   weite Welt hinaus dringe und dorten Unfug stifte.
+ */
+(function(){
+  'use strict';   // Strenge Zucht: der Rechenknecht soll bey jedem Fehltritt laut klagen, nicht schweigend weitermachen.
+
+  /* Ein kurtzer Griff in die Seiten: $('#name') holet das Ding mit diesem Namen aus dem Dokumente. */
+  const $=s=>document.querySelector(s);
+
+  /* Die Leinwand, darauff das Gewölbe gemahlet wird, und ihr Zeichenstifft (der „context"). */
+  const canvas=$('#dome'), ctx=canvas.getContext('2d');
+
+  /* Etliche Leute wünschen kein Gezappel auff dem Schirm; das Gerät verräth es uns, und wir halten alsdann stille. */
+  const reduce=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /*
+   * Der Zustand (state): allhier stehet geschrieben, was der Nutzer begehret.
+   *   solid   – der Grundkörper: Zwantzigflach, Achtflach oder Vierflach
+   *   cls     – die Classe der Zertheilung, I oder II
+   *   f       – die Frequentz, das ist: in wie viel Theile eine Kante zerleget wird
+   *   top     – was zuoberst stehen soll: eine Ecke, eine Kante oder eine Fläche
+   *   method  – wie die Zwischenpuncte gesetzt werden: nach gleichen Sehnen oder gleichen Bögen
+   *   R       – der Halbmesser der Kugel in Metern
+   *   mode    – die Bauart: einzelne Balken an Naben, oder fertige Dreyecks-Rahmen, die man hernach zusammensetzet
+ *   allow   – der Abzug an jedem Stabende für die Nabe, in Millimetern
+ *   width, depth – der Querschnitt der Holzleiste: Breite und Tieffe (die Tieffe weiset zum Kugelmittelpunct), in Millimetern
+   *   cut     – die Reihe von Knoten, an der die Kugel abgeschnitten wird
+   *   faces … spin – was gemahlet werden soll, und ob sich das Gewölbe von selbst drehe
+   *   yaw, pitch – die Drehung um die Hochachse und die Neigung, in Bogenmaß
+   */
+  const state={solid:'icosahedron',cls:1,f:3,top:'vertex',method:'chords',mode:'struts',R:5,allow:0,width:45,depth:95,ptimber:4,phub:6,cut:0,
+    faces:true,struts:true,hubs:true,labels:true,dims:true,spin:!reduce,yaw:0.55,pitch:0.40};
+
+  /* Was aus den Rechnungen hervorgehet, wird in diesen Gefäßen aufbewahret:
+   *   base    – die gantze zertheilte Kugel, noch ungeschnitten
+   *   levels  – die Reihen von Knoten, von oben nach unten, an denen man schneiden kann
+   *   dome    – die fertige Kuppel samt Streben, Sorten und Maßen
+   *   dragging, last – ob der Nutzer gerade mit dem Finger oder der Maus zieht, und wo er zuletzt war */
+  let base=null, levels=[], dome=null, dragging=false, last=null;
+
+  /* ═════════════════════════════════════════════════════════════════
+   *  CAPITEL I.  Vom Rechnen mit Pfeilen im Raume
+   * ═════════════════════════════════════════════════════════════════
+   *  Ein Punct im Raume ist ein Dreygespann von Zahlen [x, y, z].
+   *  Die Hochachse ist z; was groß in z, das stehet hoch.
+   */
+  const dist=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1],a[2]-b[2]);          // Der Abstand zweyer Puncte, nach Pythagoras.
+  const sub=(a,b)=>[a[0]-b[0],a[1]-b[1],a[2]-b[2]];                     // Der Pfeil von b nach a.
+  const cross=(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]];  // Das Kreutzproduct: ein Pfeil, der senkrecht auff beyden stehet; seine Länge ist die Fläche des Parallelogramms.
+  const dot=(a,b)=>a[0]*b[0]+a[1]*b[1]+a[2]*b[2];                       // Das Punctproduct: wie sehr zwey Pfeile in dieselbe Richtung weisen.
+  const norm=p=>{const n=Math.hypot(p[0],p[1],p[2])||1; return [p[0]/n,p[1]/n,p[2]/n];};   // Den Pfeil auff die Länge Eins bringen, also auff die Einheitskugel schieben.
+  const triArea=(a,b,c)=>{const n=cross(sub(b,a),sub(c,a)); return Math.hypot(n[0],n[1],n[2])/2;};  // Die Fläche eines Dreyecks: halbes Parallelogramm.
+
+  /* Die Kugel-Zwischenschreitung (slerp): wandere von a nach b, aber nicht geradeaus durch den Bauch der Kugel,
+   * sondern über ihre Haut, auff dem Großkreise, und halte bey dem Bruchtheil t an. */
+  function slerp(a,b,t){ const c=Math.max(-1,Math.min(1,dot(a,b))), w=Math.acos(c); if(w<1e-9) return a;
+    const s=Math.sin(w), ka=Math.sin((1-t)*w)/s, kb=Math.sin(t*w)/s; return [a[0]*ka+b[0]*kb,a[1]*ka+b[1]*kb,a[2]*ka+b[2]*kb]; }
+
+  /* Drehe alle Puncte V dergestalt, daß der Einheitspfeil u hernach gen Himmel (nach +z) weiset.
+   * Dies geschiehet nach der Formel des Herrn Rodrigues: Achse ist u × z, Winkel ist der zwischen u und z. */
+  function rotateTo(V,u){
+    const z=[0,0,1], ax=cross(u,z), s=Math.hypot(ax[0],ax[1],ax[2]), c=dot(u,z);
+    if(s<1e-9){ return c>0?V:V.map(v=>[v[0],-v[1],-v[2]]); }   // Weiset u schon gen Himmel, so bleibet alles; weiset es zur Hölle, so kehre um.
+    const k=[ax[0]/s,ax[1]/s,ax[2]/s];
+    return V.map(v=>{ const kv=cross(k,v), kd=dot(k,v); return [0,1,2].map(i=>v[i]*c+kv[i]*s+k[i]*kd*(1-c)); });
+  }
+
+  /* ═════════════════════════════════════════════════════════════════
+   *  CAPITEL II.  Von den Grundkörpern und ihrer Zertheilung
+   * ═════════════════════════════════════════════════════════════════
+   *  Ein jeder Grundkörper wird beschrieben durch seine Ecken V (als Puncte auff der Einheitskugel)
+   *  und seine Flächen F (als Dreygespann von Ecken-Nummern).
+   */
+  const SOLIDS={
+    /* Das Zwantzigflach (Icosaeder): eine Ecke zuoberst, darunter ein Kranz von fünffen,
+     * darunter ein zweyter Kranz von fünffen, um ein Zehntel Kreis versetzet, und eine Ecke zuunterst.
+     * Die Höhe der Kränze ist 1/√5, ihr Halbmesser 2/√5, wie es die Geometrie will. */
+    icosahedron(){ const t=1/Math.sqrt(5), r=2/Math.sqrt(5), V=[[0,0,1]];
+      for(let k=0;k<5;k++){const a=2*Math.PI*k/5; V.push([r*Math.cos(a),r*Math.sin(a),t]);}
+      for(let k=0;k<5;k++){const a=2*Math.PI*k/5+Math.PI/5; V.push([r*Math.cos(a),r*Math.sin(a),-t]);}
+      V.push([0,0,-1]); const F=[];
+      /* Je fünff Dreyecke oben um den Scheitel, zehn im Gürtel, fünff unten um den Fuß: zwantzig zusammen. */
+      for(let k=0;k<5;k++){ const u=1+k, un=1+(k+1)%5, l=6+k, ln=6+(k+1)%5; F.push([0,u,un],[u,l,un],[un,l,ln],[11,ln,l]); }
+      return {V,F}; },
+    /* Das Achtflach (Octaeder): sechs Ecken auff den Achsen, acht Dreyecke. */
+    octahedron(){ return {V:[[0,0,1],[1,0,0],[0,1,0],[-1,0,0],[0,-1,0],[0,0,-1]],
+      F:[[0,1,2],[0,2,3],[0,3,4],[0,4,1],[5,2,1],[5,3,2],[5,4,3],[5,1,4]]}; },
+    /* Das Vierflach (Tetraeder): vier Ecken auff den Ecken eines Würffels, vier Dreyecke. */
+    tetrahedron(){ const s=1/Math.sqrt(3); return {V:[[s,s,s],[s,-s,-s],[-s,s,-s],[-s,-s,s]],F:[[0,1,2],[0,3,1],[0,2,3],[1,3,2]]}; }
+  };
+
+  /* Richte den Körper auff: was der Nutzer zuoberst wünschet – die erste Ecke, die Mitte der ersten Kante
+   * oder die Mitte der ersten Fläche – das wird gen Himmel gedrehet. */
+  function orient({V,F},top){
+    let u; if(top==='vertex') u=V[0]; else if(top==='edge') u=norm([0,1,2].map(i=>V[F[0][0]][i]+V[F[0][1]][i]));
+    else u=norm([0,1,2].map(i=>V[F[0][0]][i]+V[F[0][1]][i]+V[F[0][2]][i]));
+    return {V:rotateTo(V,norm(u)),F};
+  }
+
+  /* Die Classe II: Setze in jede Fläche einen neuen Knoten in ihrer Mitte (auff die Kugel geschoben).
+   * Alsdann bilde über jeder alten Kante zwey neue Dreyecke, ein jedes aus einem Kanten-Ende und den
+   * beyden Mitten der anstoßenden Flächen. So drehet sich das Gitter um dreyßig Grad, und die Frequentz
+   * wird hernach verdoppelt, weßhalb Classe II nur in geraden Frequentzen zu haben ist. */
+  function classII({V,F}){
+    const n=V.length, V2=V.concat(F.map(f=>norm([0,1,2].map(i=>V[f[0]][i]+V[f[1]][i]+V[f[2]][i]))));
+    const em=new Map();   // Ein Verzeichniß aller Kanten, und welche zwey Flächen an einer jeden hangen.
+    F.forEach((f,fi)=>{ for(let k=0;k<3;k++){ const a=f[k], b=f[(k+1)%3]; const key=Math.min(a,b)+'_'+Math.max(a,b);
+      if(!em.has(key)) em.set(key,{a:Math.min(a,b),b:Math.max(a,b),faces:[]}); em.get(key).faces.push(fi); } });
+    const F2=[]; for(const e of em.values()){ const [f1,f2]=e.faces; F2.push([e.a,n+f1,n+f2],[e.b,n+f2,n+f1]); }
+    return {V:V2,F:F2};
+  }
+
+  /* Ein Punct im Dreyeck A B C, an der Gitterstelle (i, j) bey Frequentz f.
+   * Nach gleichen Sehnen: mische die drey Ecken nach ihren Gewichten und schiebe das Ergebniß auff die Kugel.
+   * Nach gleichen Bögen: wandere von jeder Ecke aus über die Kugelhaut (slerp) erst die Kanten entlang,
+   * dann quer hinüber; thue dies von allen drey Ecken und nimm das Mittel, damit keine Ecke bevorzuget sey. */
+  function gridPoint(A,B,C,i,j,f,method){
+    if(method==='chords') return norm([0,1,2].map(d=>(A[d]*(f-i-j)+B[d]*i+C[d]*j)/f));
+    const P=[A,B,C], w=[f-i-j,i,j], acc=[0,0,0];
+    for(let c=0;c<3;c++){ const a=P[c], b=P[(c+1)%3], d=P[(c+2)%3], wb=w[(c+1)%3], wd=w[(c+2)%3], k=wb+wd;
+      let q=a; if(k>0){ const s1=slerp(a,b,k/f), s2=slerp(a,d,k/f); q=slerp(s1,s2,wd/k); }
+      acc[0]+=q[0]; acc[1]+=q[1]; acc[2]+=q[2]; }
+    return norm(acc);
+  }
+
+  /* Die Zertheilung selbst: Lege über jedes Dreyeck ein Gitter von f mal f kleinen Dreyecken.
+   * Puncte, die auff einer gemeinsamen Kante liegen, kämen zweymal vor; darum führet die Map ein
+   * Verzeichniß, in dem ein jeder Punct (auff fünff Stellen gerundet) nur einmal eingetragen wird. */
+  function subdivide(solid,f,method){
+    const {V,F}=solid, verts=[], map=new Map();
+    const key=p=>p.map(x=>Math.round(x*1e5)).join(',');
+    const add=p=>{ const k=key(p); if(map.has(k)) return map.get(k); map.set(k,verts.length); verts.push(p); return verts.length-1; };
+    const tris=[];
+    for(const [a,b,c] of F){
+      const A=V[a],B=V[b],C=V[c], g=[];
+      /* g[i][j] ist die Nummer des Punctes in Reihe i, Stelle j; die Reihen werden nach oben hin kürtzer, wie bey einem Kegelspiel. */
+      for(let i=0;i<=f;i++){ g.push([]); for(let j=0;j<=f-i;j++) g[i].push(add(gridPoint(A,B,C,i,j,f,method))); }
+      /* Aus je drey benachbarten Gitterpuncten ein aufrechtes Dreyeck, und zwischen zweyen ein gestürtztes. */
+      for(let i=0;i<f;i++) for(let j=0;j<f-i;j++){
+        tris.push([g[i][j],g[i+1][j],g[i][j+1]]);
+        if(j<f-i-1) tris.push([g[i+1][j],g[i+1][j+1],g[i][j+1]]);
+      }
+    }
+    return {verts,tris};
+  }
+  /* Die wahre Frequentz: bey Classe II ist sie doppelt so groß, wie der Knopff es saget. */
+  const nu=()=>state.cls===2?state.f*2:state.f;
+
+  /* Aus der Höhe z des Schnittes ein Bruchtheil der Kugel machen, wie es die Zimmerleute sagen: „ein Fünff-Achtel-Dom".
+   * Die Höhe der Kuppel ist (1 − z), die der gantzen Kugel ist 2; wir runden auff Achtel und kürtzen den Bruch. */
+  function fraction(z){
+    const h=(1-z)/2, e=Math.round(h*8);
+    const g=(a,b)=>b?g(b,a%b):a; const d=g(e,8);   // Der größte gemeine Theiler, nach Euclid.
+    return e===8?'full sphere':e===0?'under 1/8':`${e/d}/${8/d}`;
+  }
+
+  /* ═════════════════════════════════════════════════════════════════
+   *  CAPITEL III.  Vom Schnitt, der aus der Kugel eine Kuppel machet
+   * ═════════════════════════════════════════════════════════════════
+   */
+
+  /* Baue die gantze Kugel neu und suche die Reihen, an denen man schneiden kann.
+   * Es geschiehet, so offt der Nutzer Körper, Classe, Frequentz, Ausrichtung oder Methode wechselt. */
+  function rebuildBase(){
+    let solid=orient(SOLIDS[state.solid](),state.top);
+    if(state.cls===2) solid=classII(solid);
+    base=subdivide(solid,state.f,state.method);
+    /* Sammle alle Höhen z, die unter den Knoten vorkommen, und ordne sie von oben nach unten. */
+    const s=new Set(); base.verts.forEach(v=>s.add(Math.round(v[2]*1e4)/1e4));
+    const zs=[...s].sort((a,b)=>b-a), rows=[];
+    /* Knoten, die beynahe auff gleicher Höhe liegen, gehören zu einer Reihe. Bey ungerader Frequentz
+     * (etwa 3V) ist eine Reihe nämlich nicht gantz eben, sondern schwanket um ein Weniges; das ist die
+     * berühmte Unebenheit des Fußes bey dem 3V-Dom. Der Spielraum wird mit der Frequentz enger. */
+    for(const z of zs){ const r=rows[rows.length-1]; if(r && r.min-z<0.22/nu()){ r.min=z; } else rows.push({max:z,min:z}); }
+    rows.forEach(r=>r.z=(r.max+r.min)/2);
+    levels=rows.slice(1);   // Die oberste Reihe ist der Scheitel allein; darunter schneiden gäbe keine Kuppel.
+    /* Als Vorgabe nehmen wir die erste Reihe, die nicht über dem Æquator liegt: das gibt den halben Dom,
+     * oder bey 3V den Fünff-Achtel-Dom, wie man ihn gemeiniglich bauet. */
+    let def=0; for(let i=0;i<levels.length;i++){ if(levels[i].z<=1e-6){def=i;break;} }
+    state.cut=def;
+    /* Fülle das Auswahlkästlein mit den Reihen. */
+    const sel=$('#cut'); sel.innerHTML='';
+    levels.forEach((r,i)=>{ const o=document.createElement('option'); o.value=i;
+      o.textContent=`row ${i+1} · ${fraction(r.z)} · ${((1-r.z)/2*100).toFixed(0)} % of sphere`; sel.appendChild(o); });
+    sel.value=def;
+  }
+
+  /* Schneide die Kugel an der gewählten Reihe ab und miß alles, was übrig bleibt. */
+  function buildDome(){
+    const row=levels[state.cut], zc=row.z;
+    /* Nur die Dreyecke bleiben, deren drey Ecken alle über dem Schnitt liegen. Die Ecken bekommen neue,
+     * lückenlose Nummern, damit keine verwaisten Knoten mitgeschleppet werden. */
+    const keep=new Map(), verts=[], tris=[];
+    const remap=i=>{ if(!keep.has(i)){keep.set(i,verts.length); verts.push(base.verts[i]);} return keep.get(i); };
+    for(const t of base.tris) if(t.every(i=>base.verts[i][2]>=row.min-5e-4)) tris.push(t.map(remap));
+    /* Aus den Dreyecken die Kanten lesen: jede Kante kommt in zwey Dreyecken vor, wir wollen sie aber nur einmal. */
+    const eset=new Map();
+    for(const t of tris) for(let k=0;k<3;k++){ const a=t[k], b=t[(k+1)%3]; const lo=Math.min(a,b), hi=Math.max(a,b); eset.set(lo+'_'+hi,[lo,hi]); }
+    const edges=[...eset.values()].map(e=>({a:e[0],b:e[1],L:dist(verts[e[0]],verts[e[1]])}));
+    edges.sort((x,y)=>x.L-y.L);   // Von der kürtzesten zur längsten.
+    /* Die Sorten: Streben, deren Länge sich nur um ein Winziges unterscheidet, sind derselben Sorte,
+     * und die Sorten heißen A, B, C … und nach dem Z: AA, AB und so fort. */
+    const classes=[];
+    for(const e of edges){ const c=classes[classes.length-1];
+      if(c && Math.abs(e.L-c.L)<2e-5){ c.count++; e.cls=classes.length-1; }
+      else { const n=classes.length; classes.push({L:e.L,count:1,name:n<26?String.fromCharCode(65+n):'A'+String.fromCharCode(65+n-26)}); e.cls=n; } }
+    /* Die Wertigkeit eines Knotens: wie viele Streben in ihm zusammenlaufen. Fünff um die alten Ecken, sechs sonst. */
+    const val=new Array(verts.length).fill(0);
+    edges.forEach(e=>{val[e.a]++; val[e.b]++;});
+    /* Der Fußring: alle Knoten der untersten Reihe, nach ihrem Winkel um die Hochachse geordnet. */
+    const baseIdx=verts.map((v,i)=>i).filter(i=>verts[i][2]<=row.max+5e-4);
+    baseIdx.sort((i,j)=>Math.atan2(verts[i][1],verts[i][0])-Math.atan2(verts[j][1],verts[j][0]));
+    /* Die Grundfläche nach der Schnürformel (Gauß): Man gehe um das Vieleck herum und summire x·y' − x'·y. */
+    let baseArea=0; for(let k=0;k<baseIdx.length;k++){ const p=verts[baseIdx[k]], q=verts[baseIdx[(k+1)%baseIdx.length]]; baseArea+=p[0]*q[1]-q[0]*p[1]; }
+    baseArea=Math.abs(baseArea)/2; if(baseIdx.length<3) baseArea=0;
+    /* Oberfläche und Rauminhalt: Die Fläche ist die Summe aller Dreyecke. Der Rauminhalt ist die Summe
+     * aller Pyramiden, die vom Kugelmittelpunct zu einem Dreyeck reichen (ein Sechstel des Spatproducts),
+     * vermehrt oder vermindert um die Pyramide über dem Fußring, je nachdem der Mittelpunct über oder
+     * unter dem Fuße lieget. Alles auff der Einheitskugel; die wahren Maße kommen durch R, R² und R³. */
+    let surf=0, vol=0;
+    for(const [a,b,c] of tris){ const A=verts[a],B=verts[b],C=verts[c]; surf+=triArea(A,B,C); vol+=Math.abs(dot(A,cross(B,C)))/6; }
+    vol-=zc*baseArea/3;
+    const isBase=new Set(baseIdx);
+    const valence={}; val.forEach((v,i)=>{ const k=isBase.has(i)?'base':String(v); valence[k]=(valence[k]||0)+1; });
+    /* Die Tafeln (panels): Ein jedes Dreyeck wird nach den Sorten seiner drey Kanten benannt, etwa „A B B".
+     * Gleiche Namen sind gleiche Tafeln; wir zählen sie und messen ihre Fläche, für die Haut der Kuppel. */
+    const ecl=new Map(); edges.forEach(e=>ecl.set(e.a+'_'+e.b,e));
+    const edgeOf=(a,b)=>ecl.get(Math.min(a,b)+'_'+Math.max(a,b));
+    const pmap=new Map();
+    const normals=tris.map(([a,b,c])=>{ const A=verts[a],B=verts[b],C=verts[c]; let n=norm(cross(sub(B,A),sub(C,A)));
+      if(dot(n,A)<0) n=[-n[0],-n[1],-n[2]]; return n; });   // Die Normale eines jeden Dreyecks, nach außen weisend.
+    tris.forEach((t,ti)=>{ const es=[edgeOf(t[0],t[1]),edgeOf(t[1],t[2]),edgeOf(t[2],t[0])];
+      const key=es.map(e=>e.cls).sort((x,y)=>x-y).join('-');
+      if(!pmap.has(key)){ const sc=es.map(e=>({L:e.L,cls:e.cls})).sort((x,y)=>x.L-y.L); pmap.set(key,{key,sc,names:sc.map(x=>classes[x.cls].name).join(' '),sides:sc.map(x=>x.L),count:0,area:0}); }
+      const pnl=pmap.get(key); pnl.count++; pnl.area+=triArea(verts[t[0]],verts[t[1]],verts[t[2]]);
+      es.forEach(e=>{ (e.tris=e.tris||[]).push(ti); }); });
+    const panels=[...pmap.values()].sort((x,y)=>x.sides[0]-y.sides[0]).map(pnl=>({...pnl,area:pnl.area/pnl.count}));
+    /* Der Faltwinkel (dihedral) an einer Kante: der Winkel zwischen den Normalen der beyden anstoßenden Dreyecke.
+     * Die Hälfte davon ist die Fase, die man an die Langkanten der Leiste hobeln muß, damit die Tafeln eben aufliegen.
+     * Kanten am Fuße haben nur ein Dreyeck; sie bleiben außen vor. Je Sorte nehmen wir das Mittel. */
+    classes.forEach(c=>{ c.bevel=0; c.nb=0; });
+    edges.forEach(e=>{ if(e.tris&&e.tris.length===2){ const a=Math.acos(Math.max(-1,Math.min(1,dot(normals[e.tris[0]],normals[e.tris[1]]))));
+      classes[e.cls].bevel+=a/2*180/Math.PI; classes[e.cls].nb++; } });
+    classes.forEach(c=>{ c.bevel=c.nb?c.bevel/c.nb:0; });
+    /* Für die Bauart mit Dreyecks-Rahmen: eine jede Kante wird so offt gebrauchet, wie Dreyecke an ihr hangen. */
+    classes.forEach(c=>{ c.countTri=0; });
+    edges.forEach(e=>{ classes[e.cls].countTri+=(e.tris?e.tris.length:1); });
+    const totalTri=edges.reduce((s,e)=>s+e.L*(e.tris?e.tris.length:1),0);
+    dome={totalTri,edgeOf,zc,uneven:row.max-row.min,verts,tris,edges,classes,panels,baseIdx,isBase,val,baseArea,surf,vol,valence,total:edges.reduce((s,e)=>s+e.L,0)};
+  }
+
+  /* ═════════════════════════════════════════════════════════════════
+   *  CAPITEL IV.  Von der Ausgabe in Worten und Zahlen
+   * ═════════════════════════════════════════════════════════════════
+   */
+  const nf=d=>new Intl.NumberFormat('en-GB',{minimumFractionDigits:d,maximumFractionDigits:d});   // Zahlen nach englischer Art, mit d Stellen hinter dem Puncte.
+  const fm=(x,d=2)=>nf(d).format(x);
+  const cap=s=>s[0].toUpperCase()+s.slice(1);   // Den ersten Buchstaben groß schreiben.
+  const triMode=()=>state.mode==='triangles';
+  const cnt=c=>triMode()?c.countTri:c.count;           // Stückzahl einer Sorte, je nach Bauart
+  const totalLen=()=>triMode()?dome.totalTri:dome.total;   // Gesamtlänge aller Balken (Einheitskugel)
+  const nStruts=()=>triMode()?dome.tris.length*3:dome.edges.length;
+  /* Eine Zeile, die den gantzen Entwurff beschreibet; sie stehet unter dem Bilde und über der Stückliste. */
+  const describe=()=>`${cap(state.solid)} · class ${state.cls===2?'II':'I'} · ${nu()}V · ${fraction(dome.zc)} · ${state.top} on top · ${state.method==='arcs'?'equal arcs':'equal chords'} · ${triMode()?'triangle frames':'struts & hubs'}`;
+
+  /* Die Maße als Reihen: [Name, Wert, Einheit, (unbenutzt), ob davor ein Zwischenraum stehe]. Auch das PDF nutzet sie. */
+  function measureRows(){
+    const R=state.R, d=dome, zc=d.zc, al=state.allow/1000;
+    const h=(1-zc)*R, floorD=2*Math.sqrt(Math.max(0,1-zc*zc))*R;
+    const hubs=Object.keys(d.valence).filter(k=>k!=='base').sort().map(k=>`${d.valence[k]} × ${k}-way`).join(', ')+(d.valence.base?`, ${d.valence.base} on the base`:'');
+    const cutTotal=d.classes.reduce((s,c)=>s+Math.max(0,c.L*R-2*al)*cnt(c),0);
+    const timberVol=cutTotal*state.width/1000*state.depth/1000;   // Kubikmeter Holz
+    const cost=totalLen()*R*state.ptimber+(triMode()?d.tris.length:d.verts.length)*state.phub;
+    return [
+      ['Height',fm(h,2),'m'],['Floor diameter',fm(floorD,2),'m'],['Floor area',fm(d.baseArea*R*R,1),'m²'],
+      ['Base unevenness',d.uneven>1e-4?fm(d.uneven*R*100,1):'level','cm',true],
+      ['Surface',fm(d.surf*R*R,1),'m²','',true],['Volume',fm(d.vol*R*R*R,1),'m³'],
+      ['Timber, hub to hub',fm(totalLen()*R,1),'m','',true],['Timber volume',fm(timberVol,3),'m³'],['Timber mass, spruce',fm(timberVol*480,0),'kg'],
+      ['Hubs',triMode()?`none – ${d.tris.length} triangle frames`:hubs,'','',true],['Strut types',String(d.classes.length),''],['Panel types',String(d.panels.length),''],
+      [triMode()?'Rough cost, timber + frame joints':'Rough cost, timber + hubs',fm(cost,0),'¤','',true]
+    ];
+  }
+
+  /* Schreibe alle Maße und die Stückliste in das Dokument. Es geschiehet auch, wenn nur der Halbmesser
+   * oder der Naben-Abzug geändert wird, denn dann bleibt die Gestalt gleich und nur die Zahlen wandeln sich. */
+  function render(){
+    const R=state.R, d=dome, zc=d.zc, al=state.allow/1000;   // al: der Abzug, von Millimetern in Meter gewandelt.
+    const h=(1-zc)*R, floorD=2*Math.sqrt(Math.max(0,1-zc*zc))*R;   // Höhe des Doms; Durchmesser des Fußkreises nach Pythagoras.
+    $('#tag').textContent=describe();
+    $('#resHead').textContent=`radius ${fm(R,2)} m`;
+    $('#footinfo').textContent=triMode()?`${d.tris.length} triangle frames · ${nStruts()} struts · ${d.verts.length} corners`:`${d.verts.length} hubs · ${d.edges.length} struts · ${d.tris.length} triangles`;
+    $('#legend').innerHTML=d.classes.map((c,i)=>`<i><b style="background:var(--s${i%10})"></b>${c.name}</i>`).join('');
+    const hubs=Object.keys(d.valence).filter(k=>k!=='base').sort().map(k=>`${d.valence[k]} × ${k}-way`).join(', ')+(d.valence.base?`, ${d.valence.base} on the base`:'');
+    /* Die Maße als Reihen: [Name, Wert, Einheit, (unbenutzt), ob davor ein Zwischenraum stehe]. */
+    const rows=measureRows();
+    $('#stats').innerHTML=rows.map(([k,v,u,_,gap])=>`<div${gap?' class="gap"':''}><dt>${k}</dt><dd>${v}${u&&v!=='level'?`<u>${u}</u>`:''}</dd></div>`).join('');
+    $('#strutHead').textContent=`${nStruts()} struts${triMode()?' · triangle frames':''}`;
+    /* Die Stückliste: für jede Sorte ein Farbstrich, der Buchstabe, der Sehnenfactor (Länge auff der
+     * Einheitskugel), die Länge von Nabe zu Nabe, die Schnittlänge nach Abzug, und die Stückzahl. */
+    $('#strutTable tbody').innerHTML=d.classes.map((c,i)=>
+      `<tr><td class="t"><span class="sw" style="background:var(--s${i%10})"></span>${c.name}</td><td class="r">${fm(c.L,5)}</td><td class="r">${fm(c.L*R,3)} m</td><td class="r">${fm(Math.max(0,c.L*R-2*al),3)} m</td><td class="r">${fm(endAngle(c.L),1)}°</td><td class="r">${c.nb?fm(c.bevel,1)+'°':'–'}</td><td class="r">${cnt(c)}</td></tr>`).join('');
+    $('#strutTable tfoot').innerHTML=`<tr><td colspan="2">all struts</td><td class="r">${fm(totalLen()*R,2)} m</td><td class="r">${fm(Math.max(0,totalLen()*R-2*al*nStruts()),2)} m</td><td></td><td></td><td class="r">${nStruts()}</td></tr>`;
+    /* Die Tafeln für die Haut. */
+    $('#panelHead').textContent=`${d.tris.length} triangles`;
+    $('#panelTable tbody').innerHTML=d.panels.map((pn,i)=>`<tr><td class="t">${pn.names}</td><td class="r">${pn.sides.map(x=>fm(x*R,3)).join(' · ')} m</td><td class="r">${fm(pn.area*R*R,3)} m²</td><td class="r">${pn.count}</td><td class="r">${fm(pn.area*pn.count*R*R,2)} m²</td></tr>`).join('');
+    $('#panelTable tfoot').innerHTML=`<tr><td colspan="3">all panels</td><td class="r">${d.tris.length}</td><td class="r">${fm(d.surf*R*R,2)} m²</td></tr>`;
+    /* Und zuletzt die Zeichnungen der Holzleisten, eine für jede Sorte, und der Tafeln, eine für jede Art Dreyeck. */
+    $('#drawings').innerHTML=d.classes.map((c,i)=>strutDrawing(c,i)).join('');
+    $('#paneldrawings').innerHTML=d.panels.map((pn,i)=>panelDrawing(pn,i)).join('');
+  }
+
+  /* Der Endwinkel einer Strebe: Die Sehne c spannet den Mittelpunctswinkel α auff, mit c = 2·sin(α/2).
+   * Die Strebe trifft die Tangentialebene der Nabe unter dem halben Winkel α/2; das ist der Winkel, um den
+   * man das Stabende aus dem rechten Winkel heraus schräg schneiden muß. In Graden. */
+  const endAngle=c=>Math.asin(Math.min(1,c/2))*180/Math.PI;
+
+  /* Die technische Zeichnung einer Holzleiste, als SVG-Bild. Man siehet die Leiste von der Seite, also auff die
+   * Tieffe, wo die schrägen Enden zu sehen sind. Weil die Leiste viel länger denn tieff ist, wird sie in der Mitte
+   * mit Bruchlinien abgekürtzet, wie es die Zeichner seit alters thun. Dazu ein Querschnitt und die Maße. */
+  function strutDrawing(c,i){
+    const R=state.R, al=state.allow/1000;
+    const Lc=Math.max(0,c.L*R-2*al)*1000;           // Schnittlänge auff der Mittellinie, in Millimetern
+    const Lhh=c.L*R*1000;                            // Länge von Nabe zu Nabe
+    const beta=Math.asin(Math.min(1,c.L/2)), deg=beta*180/Math.PI;
+    const d=state.depth, w=state.width;
+    const D=56, k=D/d;                               // Die Tieffe wird 56 Bildpuncte hoch gezeichnet; k ist der Maßstab
+    const off=d*Math.tan(beta)*k;                    // Der Versatz zwischen äußerer und innerer Ecke am Ende
+    const x0=44, y0=46, end=150, gap=54, x1=x0+2*end+gap;   // Linke Kante, obere Kante, Länge der Endstücke, Bruchlücke, rechte Kante
+    const yc=y0+D/2, mm=v=>Math.round(v).toLocaleString('en-GB');
+    const pen='var(--pencil)', red='var(--red)', ink='var(--fg)';
+    const zig=(x,dir)=>`M${x} ${y0-6} L${x+3*dir} ${y0+D*0.3} L${x-3*dir} ${y0+D*0.7} L${x} ${y0+D+6}`;   // Die Bruchlinie, ein leichter Zickzack
+    const arrowL=(x,y)=>`M${x} ${y} l7 -3 v6 z`, arrowR=(x,y)=>`M${x} ${y} l-7 -3 v6 z`;
+    const ax=x0+off/2, bx=x1-off/2;                  // Wo die Mittellinie an den Enden aufhöret
+    const yd=y0+D+30;                                // Höhe der Maßlinie unten
+    const arcR=36, ang=beta;                         // Der Winkelbogen am linken Ende
+    const arc=`M${x0} ${y0+arcR} A${arcR} ${arcR} 0 0 0 ${x0+arcR*Math.sin(ang)} ${y0+arcR*Math.cos(ang)}`;
+    const sx=x1+40, ks=Math.min(64/d,40/w), sw=w*ks, sd=d*ks, sy=yc-sd/2;   // Der Querschnitt rechts, in eigenem Maßstab
+    return `<div class="dwg">
+<svg viewBox="0 0 ${sx+sw+56} ${yd+34}" role="img" aria-label="Strut ${c.name}, side elevation with end cuts and cross-section">
+  <g fill="none" stroke="${pen}" stroke-width="1" stroke-linejoin="round">
+    <path d="M${x0} ${y0} H${x0+end}" /><path d="M${x0+off} ${y0+D} H${x0+end}" /><path d="M${x0} ${y0} L${x0+off} ${y0+D}" stroke="${red}" stroke-width="1.6"/>
+    <path d="M${x1} ${y0} H${x1-end}" /><path d="M${x1-off} ${y0+D} H${x1-end}" /><path d="M${x1} ${y0} L${x1-off} ${y0+D}" stroke="${red}" stroke-width="1.6"/>
+    <path d="${zig(x0+end,1)}" /><path d="${zig(x1-end,-1)}" />
+    <path d="M${ax-12} ${yc} H${bx+12}" stroke-dasharray="9 3 2 3" stroke-width=".8"/>
+    <path d="M${x0} ${y0-16} V${y0+arcR+8}" stroke-dasharray="3 3" stroke-width=".8"/>
+    <path d="${arc}" stroke="${red}" stroke-width=".9"/>
+    <path d="M${ax} ${y0+D+8} V${yd+6}" stroke-width=".7"/><path d="M${bx} ${y0+D+8} V${yd+6}" stroke-width=".7"/>
+    <path d="M${ax} ${yd} H${bx}" stroke-width=".8"/>
+    <path d="M${x0} ${y0-8} V${y0-30}" stroke-width=".7"/><path d="M${x1} ${y0-8} V${y0-30}" stroke-width=".7"/>
+    <path d="M${x0} ${y0-24} H${x1}" stroke-width=".8"/>
+    <rect x="${sx}" y="${sy}" width="${sw}" height="${sd}" />
+    <path d="M${sx+sw+6} ${sy} h8 M${sx+sw+10} ${sy} V${sy+sd} M${sx+sw+6} ${sy+sd} h8" stroke-width=".7"/>
+    <path d="M${sx} ${sy+sd+6} v8 M${sx} ${sy+sd+10} H${sx+sw} M${sx+sw} ${sy+sd+6} v8" stroke-width=".7"/>
+  </g>
+  <g fill="${pen}"><path d="${arrowL(ax,yd)}"/><path d="${arrowR(bx,yd)}"/><path d="${arrowL(x0,y0-24)}"/><path d="${arrowR(x1,y0-24)}"/></g>
+  <g fill="${ink}" font-size="11">
+    <text x="${(ax+bx)/2}" y="${yd-5}" text-anchor="middle">${mm(Lc)} mm  (centre line, cut length)</text>
+    <text x="${(x0+x1)/2}" y="${y0-28}" text-anchor="middle" fill="${pen}">outer face ${mm(Lc+d*Math.tan(beta))} mm · inner face ${mm(Lc-d*Math.tan(beta))} mm</text>
+    <text x="${x0+arcR+6}" y="${y0+arcR-2}" fill="${red}" font-weight="500">${deg.toFixed(1)}°</text>
+    <text x="${x0+end-4}" y="${yc-D/2-8}" text-anchor="end" fill="${pen}" font-size="10">break</text>
+    <text x="${sx+sw+14}" y="${yc+4}" fill="${pen}" font-size="10">${w}</text>
+    <text x="${sx+sw/2}" y="${sy+sd+24}" text-anchor="middle" fill="${pen}" font-size="10">${d}</text>
+    <text x="${sx+sw/2}" y="${sy-8}" text-anchor="middle" fill="${pen}" font-size="10">section</text>
+  </g>
+</svg>
+<div class="tb"><span><b>${c.name}</b> &nbsp;× ${cnt(c)}</span><span>hub to hub ${mm(Lhh)} mm · chord ${fm(c.L,5)} · scale broken</span></div>
+</div>`;
+  }
+
+  /* Die Geometrie einer Tafel in der Ebene: die längste Seite lieget unten, der dritte Punct wird nach dem
+   * Cosinussatze gefunden. Alles in Millimetern. Gibt die drey Ecken, die drey Seiten samt Sorte und die Winkel. */
+  function panelGeom(pn){
+    const R=state.R, sc=pn.sc.map(x=>({L:x.L*R*1000,cls:x.cls,name:dome.classes[x.cls].name}));
+    const [a,b,c]=[sc[0].L,sc[1].L,sc[2].L];   // c ist die längste Seite
+    const x=(b*b+c*c-a*a)/(2*c), h=Math.sqrt(Math.max(0,b*b-x*x));
+    const P0=[0,0], P1=[c,0], P2=[x,h];   // Seite c: P0–P1, Seite b: P0–P2, Seite a: P1–P2
+    const ang=(u,v,w)=>Math.acos(Math.max(-1,Math.min(1,(u*u+v*v-w*w)/(2*u*v))))*180/Math.PI;
+    return {P:[P0,P1,P2], sides:[{p:P1,q:P2,s:sc[0]},{p:P0,q:P2,s:sc[1]},{p:P0,q:P1,s:sc[2]}],
+      angles:[{at:P0,deg:ang(b,c,a)},{at:P1,deg:ang(a,c,b)},{at:P2,deg:ang(a,b,c)}], c, h};
+  }
+  /* Die technische Zeichnung einer Tafel: das Dreyeck im Maßstabe, außen an jeder Seite eine Maßlinie mit Buchstabe
+   * und Länge, in den Ecken die Winkel, dazu die Fläche. Bey Dreyecks-Rahmen das Holzband innen an den Kanten. */
+  function panelDrawing(pn,i){
+    const g=panelGeom(pn), R=state.R, W=520, pad=64;
+    const k=(W-2*pad)/g.c, H=g.h*k+2*pad+10;
+    const X=p=>pad+p[0]*k, Y=p=>H-pad-p[1]*k;
+    const pen='var(--pencil)', ink='var(--fg)', mm=v=>Math.round(v).toLocaleString('en-GB');
+    const cx=(g.P[0][0]+g.P[1][0]+g.P[2][0])/3, cy=(g.P[0][1]+g.P[1][1]+g.P[2][1])/3;   // Schwerpunct, für „außen"
+    let out='';
+    for(const sd of g.sides){
+      const mx=(sd.p[0]+sd.q[0])/2, my=(sd.p[1]+sd.q[1])/2; let nx=-(sd.q[1]-sd.p[1]), ny=(sd.q[0]-sd.p[0]); const nl=Math.hypot(nx,ny)||1; nx/=nl; ny/=nl;
+      if((mx-cx)*nx+(my-cy)*ny<0){ nx=-nx; ny=-ny; }   // Die Normale soll vom Schwerpuncte fort weisen.
+      const off=22/k, tx=mx+nx*off*1.9, ty=my+ny*off*1.9;
+      const p1=[sd.p[0]+nx*off,sd.p[1]+ny*off], q1=[sd.q[0]+nx*off,sd.q[1]+ny*off];
+      const angle=Math.atan2(-(Y(q1)-Y(p1)),X(q1)-X(p1))*180/Math.PI, rot=angle>90||angle<-90?angle+180:angle;
+      out+=`<g stroke="${pen}" stroke-width=".8" fill="none"><path d="M${X(sd.p)} ${Y(sd.p)} L${X(p1)} ${Y(p1)} M${X(sd.q)} ${Y(sd.q)} L${X(q1)} ${Y(q1)}" stroke-dasharray="3 3"/><path d="M${X(p1)} ${Y(p1)} L${X(q1)} ${Y(q1)}"/></g>`;
+      out+=`<text x="${X([tx,ty])}" y="${Y([tx,ty])}" transform="rotate(${-rot} ${X([tx,ty])} ${Y([tx,ty])})" text-anchor="middle" dominant-baseline="middle" fill="${ink}" font-size="11"><tspan fill="var(--s${sd.s.cls%10})" font-weight="700" font-size="14">${sd.s.name}</tspan>  ${mm(sd.s.L)} mm</text>`;
+    }
+    for(const an of g.angles){ const tx=an.at[0]+(cx-an.at[0])*0.32, ty=an.at[1]+(cy-an.at[1])*0.32;
+      out+=`<text x="${X([tx,ty])}" y="${Y([tx,ty])}" text-anchor="middle" dominant-baseline="middle" fill="var(--red)" font-size="11">${an.deg.toFixed(1)}°</text>`; }
+    const tri=`M${X(g.P[0])} ${Y(g.P[0])} L${X(g.P[1])} ${Y(g.P[1])} L${X(g.P[2])} ${Y(g.P[2])} Z`;
+    let frame='';
+    if(triMode()){   // Das Holzband: die Kanten um die Breite nach innen versetzet
+      const w=state.width, ins=[]; for(let j=0;j<3;j++){ const A=g.P[j], B=g.P[(j+1)%3], C=g.P[(j+2)%3]; let nx=-(B[1]-A[1]), ny=B[0]-A[0]; const nl=Math.hypot(nx,ny)||1; nx/=nl; ny/=nl; if((C[0]-A[0])*nx+(C[1]-A[1])*ny<0){nx=-nx;ny=-ny;} ins.push({A:[A[0]+nx*w,A[1]+ny*w],B:[B[0]+nx*w,B[1]+ny*w]}); }
+      const isect=(l1,l2)=>{ const [x1,y1]=l1.A,[x2,y2]=l1.B,[x3,y3]=l2.A,[x4,y4]=l2.B; const den=(x1-x2)*(y3-y4)-(y1-y2)*(x3-x4)||1e-9; const t=((x1-x3)*(y3-y4)-(y1-y3)*(x3-x4))/den; return [x1+t*(x2-x1),y1+t*(y2-y1)]; };
+      const Q=[isect(ins[2],ins[0]),isect(ins[0],ins[1]),isect(ins[1],ins[2])];
+      frame=`<path d="M${X(Q[0])} ${Y(Q[0])} L${X(Q[1])} ${Y(Q[1])} L${X(Q[2])} ${Y(Q[2])} Z" fill="none" stroke="${pen}" stroke-width=".8"/>`+[0,1,2].map(j=>`<path d="M${X(g.P[j])} ${Y(g.P[j])} L${X(Q[j])} ${Y(Q[j])}" stroke="${pen}" stroke-width=".8"/>`).join('');
+    } else {
+      frame=g.P.map(pt=>`<circle cx="${X(pt)}" cy="${Y(pt)}" r="5" fill="var(--label-bg)" stroke="${pen}" stroke-width="1"/>`).join('');
+    }
+    return `<div class="dwg"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Panel ${pn.names} to scale">
+  <path d="${tri}" fill="rgba(147,160,102,.18)" stroke="${ink}" stroke-width="1.2" stroke-linejoin="round"/>${frame}${out}
+</svg>
+<div class="tb"><span><b>${pn.names}</b> &nbsp;× ${pn.count}</span><span>area ${fm(pn.area*R*R,3)} m² each · ${fm(pn.area*pn.count*R*R,2)} m² total${triMode()?` · frame ${state.width} mm`:''}</span></div></div>`;
+  }
+  /* Dieselbe Tafel für das PDF, mit Linien und Schrifft in Millimetern auff dem Blatte. */
+  function pdfPanel(doc,pn,x,y,W){
+    const g=panelGeom(pn), R=state.R, k=(W-30)/g.c, H=g.h*k+22;
+    const X=p=>x+15+p[0]*k, Y=p=>y+H-8-p[1]*k;
+    const cx=(g.P[0][0]+g.P[1][0]+g.P[2][0])/3, cy=(g.P[0][1]+g.P[1][1]+g.P[2][1])/3;
+    doc.setDrawColor(46,43,34); doc.setLineWidth(0.35); doc.setFillColor(232,236,214);
+    doc.triangle(X(g.P[0]),Y(g.P[0]),X(g.P[1]),Y(g.P[1]),X(g.P[2]),Y(g.P[2]),'FD');
+    doc.setFontSize(8); doc.setTextColor(46,43,34);
+    for(const sd of g.sides){ const mx=(sd.p[0]+sd.q[0])/2, my=(sd.p[1]+sd.q[1])/2; let nx=-(sd.q[1]-sd.p[1]), ny=(sd.q[0]-sd.p[0]); const nl=Math.hypot(nx,ny)||1; nx/=nl; ny/=nl; if((mx-cx)*nx+(my-cy)*ny<0){nx=-nx;ny=-ny;}
+      const off=5/k; doc.text(`${sd.s.name} ${Math.round(sd.s.L)} mm`,X([mx+nx*off,my+ny*off]),Y([mx+nx*off,my+ny*off]),{align:'center'}); }
+    doc.setTextColor(210,83,43); doc.setFontSize(7);
+    for(const an of g.angles){ const tx=an.at[0]+(cx-an.at[0])*0.35, ty=an.at[1]+(cy-an.at[1])*0.35; doc.text(`${an.deg.toFixed(1)}°`,X([tx,ty]),Y([tx,ty])+1,{align:'center'}); }
+    doc.setTextColor(46,43,34); doc.setFontSize(11); doc.text(`${pn.names}`,x,y+4); doc.setFontSize(8); doc.setTextColor(122,108,75); doc.text(`× ${pn.count} · ${fm(pn.area*R*R,3)} m² each`,x,y+9);
+    return y+H+6;
+  }
+
+  /* Dieselbe Stückliste als schlichten Text mit Tabulatoren, auff daß man sie in ein Rechenblatt einfügen könne. */
+  function listText(){
+    const R=state.R, al=state.allow/1000, l=[`${describe()}, radius ${fm(R,2)} m, hub allowance ${state.allow} mm each end`,`strut\tchord factor\thub to hub\tcut length\tend angle\tbevel\tqty`];
+    dome.classes.forEach(c=>l.push(`${c.name}\t${fm(c.L,5)}\t${fm(c.L*R,3)} m\t${fm(Math.max(0,c.L*R-2*al),3)} m\t${fm(endAngle(c.L),1)}°\t${c.nb?fm(c.bevel,1)+'°':'-'}\t${cnt(c)}`));
+    l.push(`total\t\t${fm(totalLen()*R,2)} m\t\t\t\t${nStruts()}`);
+    return l.join('\n');
+  }
+
+  /* ═════════════════════════════════════════════════════════════════
+   *  CAPITEL V.  Vom Mahlen auff die Leinwand
+   * ═════════════════════════════════════════════════════════════════
+   *  Wir haben keine Maschine, die uns die dritte Dimension schenket; wir müssen sie selbst
+   *  auff das Blatt bringen. Das geschiehet nach dem Verfahren der alten Mahler: Was ferne ist,
+   *  wird zuerst gemahlet, was nahe ist, darüber. So verdecket das Nahe das Ferne von selbst.
+   *  Die Holzleisten sind nicht mehr bloße Striche, sondern rechte Balken mit Breite und Tieffe,
+   *  gantz so, wie man das Rohmaterial oben eingestellet hat; ein jeder Balken ist ein Kästlein
+   *  aus acht Ecken und sechs Flächen, dessen Enden an den Naben schräg geschnitten sind.
+   */
+  const hex=h=>{h=h.replace('#',''); if(h.length===3) h=h.split('').map(c=>c+c).join(''); return [parseInt(h.slice(0,2),16),parseInt(h.slice(2,4),16),parseInt(h.slice(4,6),16)];};   // Eine Farbe wie #C28E2E in ihre drey Zahlen zerlegen.
+  const mix=(a,b,t)=>`rgb(${Math.round(a[0]+(b[0]-a[0])*t)},${Math.round(a[1]+(b[1]-a[1])*t)},${Math.round(a[2]+(b[2]-a[2])*t)})`;   // Zwey Farben mischen, t = 0 gibt a, t = 1 gibt b.
+  const add3=(a,b,k=1)=>[a[0]+b[0]*k,a[1]+b[1]*k,a[2]+b[2]*k];
+  const ease=t=>t<0?0:t>1?1:1-Math.pow(1-t,3);   // Ein sanfftes Auslauffen: schnell zu Anfang, langsam zum Ende.
+
+  /* Der Zoom: der Nutzer darff mit dem Rade oder mit zwey Fingern näher heran und wieder fort. Höret er auff,
+   * so kehret die Ansicht von selbst gemächlich in ihr rechtes Maß zurück. `zoomTarget` ist, wohin sie strebet. */
+  let zoom=1, zoomTarget=1, lastZoomAt=0;
+  /* Das Fenster in der Mitte, zwischen den beyden Seitenleisten, in das der Dom eingepasset wird; die Leinwand selbst
+   * lieget hinter der gantzen Seite, so daß der Dom auch hinter den Tafeln und Listen sichtbar bleibet. */
+  let box={x:0,y:0,w:0,h:0};
+
+  /* Das Bauwerk als Schauspiel: `play` ist null, so lange nichts geschiehet; sonst der Zeitpunct des Anfangs.
+   * Die Phasen: erst das Verschwinden (die Balken kreisen davon), dann das Heranrücken, dann das Setzen
+   * der Balken, einer nach dem andern, und zuletzt das Auflegen der Tafeln. */
+  let play=null, order=[], interval=80, VANISH=1400, BUILD0=1700, SET=380;
+  const now=()=>performance.now();
+
+  /* Die Reihenfolge des Bauens: vom Fuße nach oben, Reihe um Reihe, in jeder Reihe erst die liegenden Balken,
+   * dann die aufsteigenden, und im Kreise herum. Ein jeder Balken erhält seine Reihe (vom Boden gezählt). */
+  function buildOrder(){
+    const rowOf=i=>{ const z=dome.verts[i][2]; let r=0; for(let k=0;k<levels.length;k++){ if(z<=levels[k].max+5e-4) r=k; } return r; };   // Reihe von oben gezählt
+    const lowest=levels.length-1;
+    order=dome.edges.map(e=>{ const ra=rowOf(e.a), rb=rowOf(e.b); const bottom=Math.max(ra,rb);
+      const m=[(dome.verts[e.a][0]+dome.verts[e.b][0])/2,(dome.verts[e.a][1]+dome.verts[e.b][1])/2,(dome.verts[e.a][2]+dome.verts[e.b][2])/2];
+      return {e, row:Math.min(state.cut,lowest)-bottom, flat:ra===rb?0:1, ang:Math.atan2(m[1],m[0]), m}; });
+    /* row: 0 ist der Fußring, 1 die nächste Reihe darüber, und so fort. */
+    order.sort((x,y)=>x.row-y.row||x.flat-y.flat||x.ang-y.ang);
+    if(triMode()){
+      /* Bey Dreyecks-Rahmen ist die Einheit das Dreyeck: geordnet nach seiner untersten Reihe und im Kreise herum. */
+      order=dome.tris.map((t,ti)=>{ const rows=t.map(rowOf), bottom=Math.max(...rows);
+        const m=[0,1,2].map(d=>(dome.verts[t[0]][d]+dome.verts[t[1]][d]+dome.verts[t[2]][d])/3);
+        return {tri:t, ti, row:Math.min(state.cut,lowest)-bottom, flat:0, ang:Math.atan2(m[1],m[0]), m, n:norm(m)}; });
+      order.sort((x,y)=>x.row-y.row||x.ang-y.ang);
+    }
+    interval=Math.max(28,Math.min(170,16000/order.length));
+    order.forEach((o,i)=>{ o.i=i; o.at=BUILD0+i*interval; });
+  }
+  /* Ein Balken zwischen zwey beliebigen Puncten A und B, an beyden Enden um `shorten` verkürtzet und um `off` seitwärts
+   * versetzet; so lassen sich auch die doppelten Balken der Dreyecks-Rahmen bauen, die nebeneinander liegen. */
+  function timberAB(A,B,shorten,off){
+    const R=state.R, ax=norm(sub(B,A)), w2=state.width/2000/R, d2=state.depth/2000/R;
+    const A1=add3(add3(A,ax,shorten),off), B1=add3(add3(B,ax,-shorten),off), rm=norm(add3(A,B)), sd=norm(cross(ax,rm));
+    const c=(E,r)=>[add3(add3(E,sd,-w2),r,d2), add3(add3(E,sd,w2),r,d2), add3(add3(E,sd,w2),r,-d2), add3(add3(E,sd,-w2),r,-d2)];
+    return {a:c(A1,norm(A)), b:c(B1,norm(B)), rm, ax, sd};
+  }
+  /* Die drey Balken eines Dreyecks-Rahmens: ein jeder um die halbe Breite zur Mitte des Dreyecks hin gerücket
+   * und an den Ecken so weit verkürtzet, daß die Gehrungen sich nicht ins Gehege kommen. */
+  function triTimbers(t){
+    const R=state.R, w2=state.width/2000/R, al=state.allow/1000/R;
+    const V3=t.map(i=>dome.verts[i]), c=[0,1,2].map(d=>(V3[0][d]+V3[1][d]+V3[2][d])/3);
+    return [0,1,2].map(k=>{ const A=V3[k], B=V3[(k+1)%3], m=[0,1,2].map(d=>(A[d]+B[d])/2); const inw=norm(sub(c,m));
+      const e=dome.edgeOf(t[k],t[(k+1)%3]);
+      return {box:timberAB(A,B,al+w2*1.75,add3([0,0,0],inw,w2*1.06)), cls:e?e.cls:0, mid:add3(m,inw,w2*1.06)}; });
+  }
+  /* Die Balken eines jeden Edges: acht Ecken im Raume der Einheitskugel. A' und B' sind die verkürtzten Enden
+   * (Naben-Abzug), r die Radiale der Nabe, s die Seite quer dazu. Die Tieffe d lieget in der Radialen,
+   * die Breite w in der Seite; alles ist durch R getheilet, denn wir rechnen auff der Einheitskugel. */
+  function timber(e){
+    const A=dome.verts[e.a], B=dome.verts[e.b], R=state.R;
+    const ax=norm(sub(B,A)), al=state.allow/1000/R, w2=state.width/2000/R, d2=state.depth/2000/R;
+    const A1=add3(A,ax,al), B1=add3(B,ax,-al), rm=norm(add3(A,B)), sd=norm(cross(ax,rm));
+    const rA=A, rB=B;   // Die Radialen der beyden Naben sind die Ortsvectoren selbst (Einheitskugel).
+    const c=(E,r)=>[add3(add3(E,sd,-w2),r,d2), add3(add3(E,sd,w2),r,d2), add3(add3(E,sd,w2),r,-d2), add3(add3(E,sd,-w2),r,-d2)];   // Vier Ecken eines Endes: außen links, außen rechts, innen rechts, innen links
+    return {a:c(A1,rA), b:c(B1,rB), rm, ax, sd};
+  }
+
+  function draw(){
+    const cw=canvas.clientWidth, ch=canvas.clientHeight; if(!cw||!ch||!dome) return;
+    const w=box.w||cw, h=box.h||ch;
+    /* Auff scharfen Schirmen hat ein Bildpunct des Blattes mehrere Bildpuncte des Glases; wir mahlen entsprechend feiner, doch höchstens doppelt. */
+    const dpr=Math.min(2,window.devicePixelRatio||1);
+    if(canvas.width!==Math.round(cw*dpr)||canvas.height!==Math.round(ch*dpr)){canvas.width=Math.round(cw*dpr); canvas.height=Math.round(ch*dpr);}
+    ctx.setTransform(dpr,0,0,dpr,0,0); ctx.clearRect(0,0,cw,ch);
+    /* Die Farben nehmen wir aus dem Stylblatt, damit Bild und Seite aus einem Guß sind. */
+    const cs=getComputedStyle(document.documentElement), col=n=>cs.getPropertyValue(n).trim();
+    const lit=hex(col('--face-lit')), dark=hex(col('--face-dark')), bgc=hex(col('--bg'));
+    const strutCol=Array.from({length:10},(_,i)=>hex(col('--s'+i)));
+    /* Die Drehung: erst um die Hochachse (yaw), dann die Neigung (pitch), damit man von schräg oben schaue. */
+    const cy=Math.cos(state.yaw), sy=Math.sin(state.yaw), cp=Math.cos(state.pitch), sp=Math.sin(state.pitch);
+    const zc=dome.zc, zmid=(1+zc)/2;
+    /* view: aus dem Weltpuncte [x, y, z] einen Augpunct [rechts, oben, tieffe] machen. */
+    const view=v=>{ const x1=v[0]*cy-v[1]*sy, y1=v[0]*sy+v[1]*cy, z1=v[2]-zmid; return [x1, y1*sp+z1*cp, y1*cp-z1*sp]; };
+    const V=dome.verts.map(view);
+    /* Das Schauspiel: wo stehen wir in der Zeit? */
+    const t=play?now()-play:null;
+    const vanish=t!==null?Math.min(1,t/VANISH):0;                 // 0 … 1 während des Verschwindens
+    const lastAt=order.length?order[order.length-1].at+SET:0;
+    const TM=triMode();
+    /* Bey Dreyecks-Rahmen: das Auseinanderziehen (explode). Während des Rahmens sind die Dreyecke nach außen gerücket,
+     * hernach werden sie zusammengezogen. */
+    const tJoin=lastAt+500, explode=t===null?0:(vanish<1?0:1-ease((t-tJoin)/1700));
+    /* Während des Schauspiels darff der Dom fast das gantze Fenster füllen, mit einem kleinen Rande ringsum;
+     * ist er auseinandergezogen, so wird der Maßstab entsprechend kleiner, damit nichts über den Rand gerathe. */
+    const grow=t===null?1:(TM?1+0.36*explode:1.05);
+    /* Das Einpassen: Ehe wir mahlen, messen wir, wie weit sich Kuppel und Sandboden auff dem Blatte erstrecken würden,
+     * und wählen den Maßstab S so, daß alles samt den Maßlinien Platz findet und nichts am Rande abgeschnitten wird.
+     * Der Zoom des Nutzers kommt obendrauff. */
+    const rb=Math.sqrt(Math.max(0,1-zc*zc));   // Der Halbmesser des Fußkreises.
+    let minx=1e9,maxx=-1e9,miny=1e9,maxy=-1e9;
+    for(const p of V){ const q=1/(1+p[2]*0.14), x=p[0]*q, y=p[1]*q; if(x<minx)minx=x; if(x>maxx)maxx=x; if(y<miny)miny=y; if(y>maxy)maxy=y; }
+    const dims=state.dims&&!play;
+    const mL=dims?88:20, mR=20, mT=dims?40:20, mB=dims?66:20;
+    const S=Math.min((w-mL-mR)/(maxx-minx||1),(h-mT-mB)/(maxy-miny||1))/grow*zoom;
+    const ox=box.x+mL+(w-mL-mR)/2-(minx+maxx)/2*S, oy=box.y+mT+(h-mT-mB)/2+(miny+maxy)/2*S;
+    /* scr: aus dem Augpuncte die Stelle auff dem Blatte; ein wenig Perspective, denn das Ferne wird kleiner. */
+    const scr=p=>{ const k=1/(1+p[2]*0.14); return [ox+p[0]*S*k, oy-p[1]*S*k]; };
+    const P=V.map(scr);
+    const L=[-0.4,0.78,-0.48];   // Woher das Licht kommt: von links oben, dem Betrachter zu.
+
+    const placed=o=>t===null?1:ease((t-o.at)/SET);               // 0 … 1: wie weit ein Balken schon gesetzt ist
+    const facesIn=t===null?1:Math.max(0,Math.min(1,(t-lastAt-200)/700));   // Die Tafeln kommen zuletzt.
+    /* Die Kreisbewegung beym Verschwinden: um die Hochachse gedrehet und nach außen und oben getragen. */
+    const swirl=(p,k)=>{ const a=k*1.6, c=Math.cos(a), s2=Math.sin(a); const q=[p[0]*c-p[1]*s2,p[0]*s2+p[1]*c,p[2]]; const r=norm(q); return add3(add3(q,r,k*0.7),[0,0,1],k*0.25); };
+
+    /* Der Sandboden ist abgeschaffet; der Dom schwebet frey im Blatte. */
+    const triOff=o=>add3(add3([0,0,0],o.n,0.3*explode),[0,0,1],0.12*explode);
+
+    /* Alles, was zu mahlen ist, kommt in einen Haufen: Tafeln und Balkenflächen, ein jedes mit seiner Tieffe.
+     * Dann wird der Haufen nach der Tieffe geordnet und von hinten nach vorn gemahlet. */
+    const items=[];
+    const shade=(pts3)=>{ const A=pts3[0],B=pts3[1],C=pts3[2]; let n=cross(sub(B,A),sub(C,A)); const c=[(A[0]+B[0]+C[0])/3,(A[1]+B[1]+C[1])/3,(A[2]+B[2]+C[2])/3];
+      if(dot(n,c)<0) n=[-n[0],-n[1],-n[2]]; const nl=Math.hypot(n[0],n[1],n[2])||1; return 0.15+0.85*Math.max(0,dot(n,L)/nl); };
+    const faceAlpha=state.faces?(t===null?1:(vanish<1?1-vanish:facesIn)):0;
+    if(!TM && faceAlpha>0.01){
+      for(const tri of dome.tris){
+        const pv=tri.map(i=>V[i]), sh=shade(pv);
+        items.push({d:(pv[0][2]+pv[1][2]+pv[2][2])/3-0.004, pts:tri.map(i=>P[i]), fill:mix(dark,lit,Math.pow(sh,0.8)), alpha:faceAlpha, edge:!state.struts});
+      }
+    }
+    /* Die Farbe eines Balkens: kräfftig und deutlich nach Sorte, das Licht nur ein wenig darüber gelegt. */
+    const strutFill=(base,sh)=>mix(mix(base,[20,16,10],0.3),mix(base,[255,250,235],0.22),Math.pow(sh,0.8));
+    const quads=[[0,1,2,3],[4,5,6,7],[0,1,5,4],[3,2,6,7],[1,2,6,5],[0,3,7,4]];
+    const pushBox=(a,b,base,alpha)=>{ const av=a.map(view), bv=b.map(view), ap=av.map(scr), bp=bv.map(scr); const pts3=[...av,...bv], pts2=[...ap,...bp];
+      for(const q of quads){ const p3=q.map(i=>pts3[i]); const sh=shade(p3);
+        items.push({d:(p3[0][2]+p3[1][2]+p3[2][2]+p3[3][2])/4, pts:q.map(i=>pts2[i]), fill:strutFill(base,sh), alpha, edge:true, thin:true}); } };
+    if(TM){
+      /* Dreyecks-Rahmen: ein jedes Dreyeck mit seinen drey Balken und seiner Tafel, gemeinsam versetzet. */
+      const seq=t===null?dome.tris.map((tri,ti)=>({tri,ti,k:1,fa:1,off:[0,0,0]})):order.map(o=>{ const k=vanish<1?1-vanish*0.9:placed(o); return {tri:o.tri,ti:o.ti,k,fa:vanish<1?1-vanish:ease((t-o.at-SET*0.7)/450),off:triOff(o),o}; });
+      for(const it of seq){
+        if(it.k<=0.001) continue;
+        let off=it.off; if(t!==null&&it.k<1&&vanish>=1){ const kk=1-it.k; off=add3(add3(off,it.o.n,kk*0.45),[0,0,1],kk*0.25); }
+        const alpha=t!==null&&vanish<1?1-vanish:it.k;
+        const sw3=(p)=>t!==null&&vanish<1?swirl(p,vanish):add3(p,off);
+        if(state.struts) for(const tb of triTimbers(it.tri)) pushBox(tb.box.a.map(sw3),tb.box.b.map(sw3),strutCol[tb.cls%10],alpha);
+        if(state.faces&&it.fa>0.01){ const p3=it.tri.map(i=>sw3(dome.verts[i])), pv=p3.map(view), sh=shade(pv);
+          items.push({d:(pv[0][2]+pv[1][2]+pv[2][2])/3-0.004, pts:pv.map(scr), fill:mix(dark,lit,Math.pow(sh,0.8)), alpha:Math.min(alpha,it.fa), edge:!state.struts}); }
+      }
+    } else if(state.struts){
+      const seq=t===null?dome.edges.map(e=>({e,k:1})):order.map(o=>({e:o.e,k:vanish<1?1-vanish*0.9:placed(o),o}));
+      for(const {e,k,o} of seq){
+        if(k<=0.001) continue;
+        const tb=timber(e);
+        let a=tb.a, b=tb.b;
+        if(t!==null&&vanish<1){ const kk=vanish; a=a.map(p=>swirl(p,kk)); b=b.map(p=>swirl(p,kk)); }
+        else if(t!==null&&k<1){ const kk=1-k; const off=add3(add3([0,0,0],tb.rm,kk*0.5),[0,0,1],kk*0.3); a=a.map(p=>add3(p,off)); b=b.map(p=>add3(p,off)); }
+        /* Die sechs Flächen des Kästleins: außen, innen, zwey Seiten, zwey Enden. Eine jede wird nach dem Lichte gefärbet. */
+        pushBox(a,b,strutCol[e.cls%10],t!==null&&vanish<1?1-vanish:k);
+      }
+    }
+    items.sort((x,y)=>y.d-x.d);
+    for(const it of items){
+      ctx.globalAlpha=it.alpha; ctx.fillStyle=it.fill; ctx.beginPath();
+      it.pts.forEach((p,i)=>i?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1])); ctx.closePath(); ctx.fill();
+      if(it.edge){ ctx.strokeStyle=it.thin?'rgba(30,26,18,.55)':it.fill; ctx.lineWidth=it.thin?0.6:0.6; ctx.stroke(); }
+    }
+    ctx.globalAlpha=1;
+
+    /* Die Naben: kleine offene Ringlein, die fünffwertigen ein wenig größer. Beym Bauen erscheinen sie, sobald der erste Balken sie berühret. */
+    const sw=Math.max(0.9,Math.min(2.4,S/150));
+    if(state.hubs && !TM && dome.verts.length<1200 && !(t!==null&&vanish<1)){
+      const hub=col('--hub'), bg=col('--bg'); let touched=null;
+      if(t!==null){ touched=new Set(); for(const o of order){ if(t>=o.at) { touched.add(o.e.a); touched.add(o.e.b); } } }
+      dome.verts.forEach((v,i)=>{ if(touched&&!touched.has(i)) return; const front=V[i][2]<=0.05; if(!front&&state.faces&&faceAlpha>0.5) return;
+        const r=dome.val[i]<6?sw*2.2:sw*1.5; ctx.globalAlpha=front?1:0.25;
+        ctx.beginPath(); ctx.arc(P[i][0],P[i][1],r,0,Math.PI*2); ctx.fillStyle=bg; ctx.fill();
+        ctx.lineWidth=sw*0.9; ctx.strokeStyle=hub; ctx.stroke(); ctx.globalAlpha=1; });
+    }
+    /* Die Buchstaben der Sorten, in Handschrifft, in die Mitte der vorderen Balken gesetzt; nur bis 4V, sonst wird es ein Gewimmel. */
+    if(state.labels && state.struts && nu()<=4 && t===null){
+      const px=Math.round(Math.max(11,Math.min(16,S/24)));
+      ctx.font=`500 ${px}px ${col('--hand')||'cursive'}`; ctx.textAlign='center'; ctx.textBaseline='middle';
+      /* Bey Dreyecks-Rahmen stehet der Buchstabe auff jedem der drey Balken eines jeden Dreyecks, sonst auff jeder Kante. */
+      const marks=TM?dome.tris.flatMap(tri=>triTimbers(tri).map(tb=>({m:view(tb.mid),cls:tb.cls}))):dome.edges.map(e=>({m:[(V[e.a][0]+V[e.b][0])/2,(V[e.a][1]+V[e.b][1])/2,(V[e.a][2]+V[e.b][2])/2],cls:e.cls}));
+      for(const e of marks){ const m=e.m;
+        if(m[2]>-0.1) continue;   // Hintere Balken tragen keinen Buchstaben.
+        const q=scr(m); const name=dome.classes[e.cls].name; const tw=ctx.measureText(name).width+7;
+        ctx.fillStyle=col('--label-bg'); ctx.globalAlpha=.9; ctx.beginPath(); ctx.ellipse(q[0],q[1],tw/2+1,px*0.58,0,0,Math.PI*2); ctx.fill(); ctx.globalAlpha=1;
+        const c=strutCol[e.cls%10]; ctx.fillStyle=`rgb(${c[0]},${c[1]},${c[2]})`; ctx.fillText(name,q[0],q[1]+1); }
+    }
+    /* Die Bemaßung mit dem Bleystifft: links die Höhe, unten der Durchmesser des Fußes, mit gestrichelten Hilfslinien
+     * und Handschrifft, wie es ein Zimmermann auff sein Blatt kritzeln würde. Nicht während des Schauspiels. */
+    if(dims){
+      const pen=col('--pencil'), R=state.R, hpx=Math.round(Math.max(13,Math.min(19,S/18)));
+      ctx.strokeStyle=pen; ctx.fillStyle=pen; ctx.lineWidth=1; ctx.setLineDash([]);
+      ctx.font=`500 ${hpx}px ${col('--hand')||'cursive'}`;
+      const apex=scr(view([0,0,1])), baseC=scr(view([0,0,zc]));
+      const xl=Math.min(...P.map(p=>p[0]))-Math.max(26,S*0.12);
+      const tick=(x,y,dx,dy)=>{ ctx.beginPath(); ctx.moveTo(x-dx,y-dy); ctx.lineTo(x+dx,y+dy); ctx.stroke(); };
+      if(xl>hpx*3){
+        ctx.setLineDash([3,4]); ctx.globalAlpha=.55;
+        ctx.beginPath(); ctx.moveTo(xl,apex[1]); ctx.lineTo(apex[0],apex[1]); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(xl,baseC[1]); ctx.lineTo(baseC[0],baseC[1]); ctx.stroke();
+        ctx.setLineDash([]); ctx.globalAlpha=1;
+        ctx.beginPath(); ctx.moveTo(xl,apex[1]); ctx.lineTo(xl,baseC[1]); ctx.stroke();
+        tick(xl,apex[1],5,0); tick(xl,baseC[1],5,0);
+        ctx.save(); ctx.translate(xl-8,(apex[1]+baseC[1])/2); ctx.rotate(-Math.PI/2); ctx.textAlign='center'; ctx.textBaseline='bottom';
+        ctx.fillText(`h ${fm((1-zc)*R,2)} m`,0,0); ctx.restore();
+      }
+      if(rb>0.05){
+        const l=scr(view([-rb*cy,rb*sy,zc])), r=scr(view([rb*cy,-rb*sy,zc]));
+        const yb=Math.max(...P.map(p=>p[1]))+Math.max(22,S*0.1);
+        if(yb<box.y+h-hpx-4){
+          ctx.setLineDash([3,4]); ctx.globalAlpha=.55;
+          ctx.beginPath(); ctx.moveTo(l[0],l[1]); ctx.lineTo(l[0],yb); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(r[0],r[1]); ctx.lineTo(r[0],yb); ctx.stroke();
+          ctx.setLineDash([]); ctx.globalAlpha=1;
+          ctx.beginPath(); ctx.moveTo(l[0],yb); ctx.lineTo(r[0],yb); ctx.stroke();
+          tick(l[0],yb,0,5); tick(r[0],yb,0,5);
+          ctx.textAlign='center'; ctx.textBaseline='top'; ctx.fillText(`⌀ ${fm(2*rb*R,2)} m`,(l[0]+r[0])/2,yb+4);
+        }
+      }
+    }
+    /* Der Lauffzettel des Schauspiels: welcher Balken gerade gesetzt wird. */
+    if(t!==null) buildStatus(t,lastAt);
+  }
+
+  /* Der Text neben der Bauanleitung, und das Hervorheben des Schrittes, an dem wir gerade sind. */
+  let lastStep=-1;
+  function buildStatus(t,lastAt){
+    const st=$('#buildStatus'), R=state.R;
+    let step=-1, txt='';
+    if(t<VANISH){ txt='clearing the site …'; step=0; }
+    else if(t<BUILD0){ txt='moving in …'; step=1; }
+    else if(triMode()){ let cur=null; for(const o of order){ if(t>=o.at) cur=o; else break; }
+      if(cur){ const pn=dome.panels.find(p=>p.key===[0,1,2].map(k=>{const e=dome.edgeOf(cur.tri[k],cur.tri[(k+1)%3]); return e?e.cls:0;}).sort((x,y)=>x-y).join('-'));
+        txt=`framing and covering triangle ${cur.i+1} of ${order.length}${pn?` · ${pn.names}`:''} · row ${cur.row+1}`; step=3; }
+      if(t>lastAt+500){ txt=t<lastAt+2200?'drawing the triangles together …':`done · ${order.length} triangle frames, ${order.length*3} struts`; step=t<lastAt+2200?4:-1; }
+      if(t>lastAt+3600){ play=null; zoomTarget=1; step=-1; txt=`done · ${order.length} triangle frames, ${order.length*3} struts`; } }
+    else { let cur=null; for(const o of order){ if(t>=o.at) cur=o; else break; }
+      if(cur){ const c=dome.classes[cur.e.cls]; txt=`placing strut ${cur.i+1} of ${order.length} · type ${c.name} · ${fm(Math.max(0,c.L*R-2*state.allow/1000),3)} m · row ${cur.row+1}`; step=3+cur.row; }
+      if(t>lastAt+200){ txt=t<lastAt+900?'fitting the panels …':`done · ${order.length} struts, ${dome.verts.length} hubs, ${dome.tris.length} panels`; step=t<lastAt+900?3+rowsCount():-1; }
+      if(t>lastAt+2600){ play=null; zoomTarget=1; step=-1; txt=`done · ${order.length} struts, ${dome.verts.length} hubs, ${dome.tris.length} panels`; } }
+    st.textContent=txt;
+    if(step!==lastStep){ lastStep=step; [...document.querySelectorAll('#steps li')].forEach((li,i)=>{ li.classList.toggle('active',i===step); li.classList.toggle('done',step>=0&&i<step); }); }
+  }
+  const rowsCount=()=>order.length?order[order.length-1].row+1:0;
+  let guideSteps=[];   // Die Schritte in Worten, auch für das PDF.
+  /* Die Bauanleitung in Worten, aus derselben Reihenfolge erzeuget, nach der das Schauspiel bauet. */
+  function renderGuide(){
+    buildOrder();
+    const R=state.R, al=state.allow/1000, d=dome;
+    const byType=list=>{ const m={}; list.forEach(o=>{ const n=d.classes[o.e.cls].name; m[n]=(m[n]||0)+1; }); return Object.keys(m).sort().map(n=>`${m[n]} × ${n}`).join(', '); };
+    const steps=[];
+    steps.push([`Clear a level site about ${fm(2*Math.sqrt(Math.max(0,1-d.zc*d.zc))*R+1,1)} m across`,`The floor is ${fm(2*Math.sqrt(Math.max(0,1-d.zc*d.zc))*R,2)} m in diameter; leave room to walk round it.${d.uneven>1e-4?` Have packers ready: the base row is out of level by up to ${fm(d.uneven*R*100,1)} cm.`:''}`]);
+    if(triMode()){
+      steps.push([`Cut the ${nStruts()} struts from ${state.width} × ${state.depth} mm timber`, d.classes.map(c=>`${cnt(c)} × ${c.name} at ${fm(Math.max(0,c.L*R-2*al),3)} m`).join(' · ')+'. Every inner edge needs two struts, one for each triangle. Mitre the corners in the plane of the triangle.']);
+      steps.push([`Frame and cover ${d.tris.length} triangles on the bench`, d.panels.map(pn=>`${pn.count} × ${pn.names} (sides ${pn.sides.map(x=>fm(x*R,3)).join(' · ')} m)`).join(', ')+`. Screw each frame square, then stretch or fix the cover on it flat: ${fm(d.surf*R*R,1)} m² in all. Plane the outer edges to ${fm(d.classes.length?d.classes.reduce((s,c)=>s+c.bevel,0)/d.classes.length:0,1)}° so neighbours meet flush.`]);
+      const rows=rowsCount();
+      steps.push([`Join the triangles, row by row from the base`, Array.from({length:rows},(_,r)=>`row ${r+1}: ${order.filter(o=>o.row===r).length} triangles`).join(' · ')+'. Bolt neighbouring frames through their paired struts; work round in one direction and close each row before starting the next.']);
+    } else {
+    steps.push([`Cut the ${d.edges.length} struts from ${state.width} × ${state.depth} mm timber`, d.classes.map(c=>`${c.count} × ${c.name} at ${fm(Math.max(0,c.L*R-2*al),3)} m, ends ${fm(endAngle(c.L),1)}°`).join(' · ')+'. Mark every strut with its letter before you move on.']);
+    const hubs=Object.keys(d.valence).filter(k=>k!=='base').sort().map(k=>`${d.valence[k]} × ${k}-way`).join(', ')+(d.valence.base?`, ${d.valence.base} base hubs`:'');
+    steps.push([`Prepare ${d.verts.length} hubs`,`${hubs}. Flat plates sit square to the sphere's radius; the strut ends already carry the angle.`]);
+    const rows=rowsCount();
+    for(let r=0;r<rows;r++){ const list=order.filter(o=>o.row===r); const flat=list.filter(o=>!o.flat).length, up=list.length-flat;
+      steps.push([r===0?`Lay the base ring and raise the first row`:`Raise row ${r+1} of ${rows}`,`${list.length} struts: ${byType(list)}.${flat?` ${flat} run along the ring,`:''}${up?` ${up} rise to the next row.`:''} Work round in one direction and leave every bolt finger-tight until the row closes.`]);
+    }
+    steps.push([`Fit the ${d.tris.length} panels`, d.panels.map(pn=>`${pn.count} × ${pn.names}`).join(', ')+`. ${fm(d.surf*R*R,1)} m² of cover in all, ${fm(d.classes.length?d.classes.reduce((s,c)=>s+c.bevel,0)/d.classes.length:0,1)}° mean bevel on the strut edges.`]);
+    }
+    guideSteps=steps;
+    $('#steps').innerHTML=steps.map(([a,b])=>`<li><div><b>${a}</b><small>${b}</small></div></li>`).join('');
+    $('#buildStatus').textContent=''; lastStep=-1;
+  }
+  function startBuild(){ buildOrder(); play=now(); zoomTarget=1; lastZoomAt=0; lastStep=-1; $('#buildStatus').textContent='clearing the site …'; }
+
+  /* Der ewige Reigen: so lange der Nutzer nicht selbst ziehet und das Drehen erlaubet ist, wandert das Gewölbe
+   * bey jedem Bilde um ein Weniges weiter. Der Zoom strebet seinem Ziele zu; hat der Nutzer eine Weile nicht
+   * gezoomet, so ist das Ziel wieder Eins. Alsdann wird aufs neue gemahlet. */
+  function loop(){
+    if(state.spin&&!dragging) state.yaw+=play?0.0018:0.003;
+    if(!play && lastZoomAt && now()-lastZoomAt>1100) zoomTarget=1;
+    if(window.scrollY>=40 && !play) zoomTarget=1;   // Beym Rollen kehret der Zoom heim.
+    canvas.style.pointerEvents=window.scrollY<40?'auto':'none';   // Unten greifet das Rad und der Finger durch den Dom hindurch auff die Seite.
+    canvas.style.cursor=window.scrollY<40?'':'default';
+    zoom+=(zoomTarget-zoom)*(play?0.04:0.025);
+    glideBox();
+    draw(); requestAnimationFrame(loop);
+  }
+  /* Die Höhe der Leinwand richtet sich nach dem Fenster: so viel, daß der gantze Dom von Anfang an zu sehen ist,
+   * ohne daß man rollen müßte. */
+  function fitCanvas(){ canvas.style.width=window.innerWidth+'px'; canvas.style.height=window.innerHeight+'px'; const t=targetBox(); if(t) box={...t}; }
+  /* Die Landeplätze (docks): leere Stellen im Blatte, in die der Dom sich setzen kann – oben die Mitte, weiter unten
+   * abwechselnd links und rechts neben den Listen. Beym Rollen suchen wir den Platz, der am meisten im Fenster
+   * zu sehen ist, und der Dom gleitet dorthin und passet sich ein; rollet man zurück, kehret er denselben Weg heim. */
+  const docks=()=>[$('#mid'),...document.querySelectorAll('.dock')].filter(d=>d&&d.getBoundingClientRect().width>160);
+  function targetBox(){
+    const vh=window.innerHeight; let best=null, bs=-1e9;
+    for(const d of docks()){ const r=d.getBoundingClientRect(); const top=Math.max(r.top,0), bot=Math.min(r.bottom,vh), vis=bot-top; if(vis<=0) continue;
+      const score=vis-Math.abs((r.top+r.bottom)/2-vh/2)*0.35; if(score>bs){ bs=score;
+        let y=top, h=vis; const want=Math.min(r.height,vh*0.62); if(h<want){ h=want; y=Math.max(0,Math.min(y,vh-h)); }   // Nicht zu sehr zusammendrücken.
+        best={x:r.left,y,w:r.width,h}; } }
+    return best;
+  }
+  function glideBox(){ const t=targetBox(); if(!t) return; const k=0.09; box={x:box.x+(t.x-box.x)*k, y:box.y+(t.y-box.y)*k, w:box.w+(t.w-box.w)*k, h:box.h+(t.h-box.h)*k}; }
+
+  /* ═════════════════════════════════════════════════════════════════
+   *  Von der Bedienung: was geschehe, so der Nutzer an den Knöpffen rühret
+   * ═════════════════════════════════════════════════════════════════
+   */
+  function update(){ buildDome(); render(); renderGuide(); play=null; draw(); }   // Schnitt neu, Zahlen neu, Anleitung neu, Bild neu.
+  /* Bey Classe II tragen die Frequentz-Knöpffe die doppelte Zahl, denn das ist die wahre Frequentz. */
+  function relabelFreq(){ document.querySelectorAll('#freq button').forEach(b=>{ b.textContent=(state.cls===2?+b.dataset.f*2:+b.dataset.f)+'V'; }); }
+  /* Die Frequentz-Knöpffe: einer wird gedrückt, die andern losgelassen, die Kugel neu gebauet. */
+  $('#freq').addEventListener('click',e=>{ const b=e.target.closest('button[data-f]'); if(!b) return;
+    document.querySelectorAll('#freq button').forEach(x=>x.setAttribute('aria-pressed',x===b)); state.f=+b.dataset.f; rebuildBase(); update(); });
+  /* Die Classen-Knöpffe, desgleichen. */
+  $('#cls').addEventListener('click',e=>{ const b=e.target.closest('button[data-c]'); if(!b) return;
+    document.querySelectorAll('#cls button').forEach(x=>x.setAttribute('aria-pressed',x===b)); state.cls=+b.dataset.c; relabelFreq(); rebuildBase(); update(); });
+  /* Die Bauart: Balken an Naben oder Dreyecks-Rahmen. Das Gitter bleibet, Zahlen, Anleitung und Bild wandeln sich. */
+  $('#mode').addEventListener('click',e=>{ const b=e.target.closest('button[data-m]'); if(!b) return;
+    document.querySelectorAll('#mode button').forEach(x=>x.setAttribute('aria-pressed',x===b)); state.mode=b.dataset.m; play=null; render(); renderGuide(); });
+  /* Die Auswahlkästlein für Körper, Ausrichtung und Methode: alle drey verlangen eine neue Kugel. */
+  $('#solid').addEventListener('change',e=>{ state.solid=e.target.value; rebuildBase(); update(); });
+  $('#top').addEventListener('change',e=>{ state.top=e.target.value; rebuildBase(); update(); });
+  $('#method').addEventListener('change',e=>{ state.method=e.target.value; rebuildBase(); update(); });
+  /* Halbmesser und Abzug ändern die Zahlen und die Gestalt der Balken, nicht das Gitter; darum kein neuer Bau, nur neue Ausgabe. */
+  $('#radius').addEventListener('input',e=>{ const v=parseFloat(e.target.value); if(v>0){state.R=v; render(); renderGuide(); draw();} });
+  $('#allow').addEventListener('input',e=>{ const v=parseFloat(e.target.value); state.allow=v>=0?v:0; render(); renderGuide(); });
+  /* Der Querschnitt der Leiste: ändert die Zeichnungen und die Balken im Bilde. */
+  $('#width').addEventListener('input',e=>{ const v=parseFloat(e.target.value); if(v>=5){state.width=v; render(); renderGuide();} });
+  $('#depth').addEventListener('input',e=>{ const v=parseFloat(e.target.value); if(v>=5){state.depth=v; render(); renderGuide();} });
+  $('#ptimber').addEventListener('input',e=>{ const v=parseFloat(e.target.value); state.ptimber=v>=0?v:0; render(); });
+  $('#phub').addEventListener('input',e=>{ const v=parseFloat(e.target.value); state.phub=v>=0?v:0; render(); });
+  /* Die Schnittreihe: die Kugel bleibt, nur der Schnitt wandert. */
+  $('#cut').addEventListener('change',e=>{ state.cut=+e.target.value; update(); });
+  /* Die Häcklein, was gemahlet werden soll. */
+  [['showFaces','faces'],['showStruts','struts'],['showHubs','hubs'],['showLabels','labels'],['showDims','dims'],['spin','spin']].forEach(([id,k])=>{
+    const el=$('#'+id); el.checked=state[k]; el.addEventListener('change',()=>{state[k]=el.checked; draw();}); });
+  /* Der Knopff, der das Bauen anhebet. */
+  $('#play').addEventListener('click',()=>{ startBuild(); window.scrollTo({top:0,behavior:'smooth'}); });
+  /* Das Ziehen mit Maus oder Finger: beym Niederdrücken merken wir uns die Stelle, beym Bewegen drehen und
+   * neigen wir das Gewölbe nach dem zurückgelegten Wege. Sind zwey Finger auff dem Glase, so ist es ein Kneiffen,
+   * und der Abstand der Finger ist der Zoom. */
+  const pointers=new Map(); let pinchD=0;
+  canvas.addEventListener('pointerdown',e=>{ if(window.scrollY>=40) return;   // Weiter unten läßt sich der Dom nicht mehr anfassen.
+    pointers.set(e.pointerId,[e.clientX,e.clientY]); canvas.setPointerCapture(e.pointerId);
+    if(pointers.size===1){ dragging=true; last=[e.clientX,e.clientY]; canvas.classList.add('dragging'); }
+    else if(pointers.size===2){ const [p,q]=[...pointers.values()]; pinchD=Math.hypot(p[0]-q[0],p[1]-q[1]); } });
+  canvas.addEventListener('pointermove',e=>{ if(!pointers.has(e.pointerId)) return; pointers.set(e.pointerId,[e.clientX,e.clientY]);
+    if(pointers.size===2){ const [p,q]=[...pointers.values()]; const dd=Math.hypot(p[0]-q[0],p[1]-q[1]); if(pinchD>0&&atTop()){ zoomTarget=Math.max(1,Math.min(4,zoomTarget*dd/pinchD)); lastZoomAt=now(); } pinchD=dd; return; }
+    if(!dragging) return; state.yaw+=(e.clientX-last[0])*0.008; state.pitch=Math.max(0.02,Math.min(1.45,state.pitch+(e.clientY-last[1])*0.006)); last=[e.clientX,e.clientY]; });
+  const stop=e=>{ pointers.delete(e.pointerId); if(pointers.size<2) pinchD=0; if(pointers.size===0){ dragging=false; canvas.classList.remove('dragging'); } };
+  canvas.addEventListener('pointerup',stop); canvas.addEventListener('pointercancel',stop);
+  /* Das Rad der Maus: hinein und heraus. */
+  /* Das Rad der Maus: hinein und heraus – aber nur zuoberst auff der Seite. Weiter unten gehet der Dom seinen Weg und
+   * drehet sich, und das Rad rollet die Seite. Auch zuoberst rollet das Rad die Seite, so lange nicht hineingezoomet ist. */
+  const atTop=()=>window.scrollY<40 && !play;
+  canvas.addEventListener('wheel',e=>{ if(!atTop()) return; if(e.deltaY>0&&zoomTarget<=1.001) return;   // Herausrollen ohne Zoom: die Seite darff rollen.
+    e.preventDefault(); zoomTarget=Math.max(1,Math.min(4,zoomTarget*Math.exp(-e.deltaY*0.0012))); lastZoomAt=now(); },{passive:false});
+  /* Auch mit den Pfeiltasten läßt sich drehen, für die, so keine Maus haben; Plus und Minus zoomen. */
+  canvas.addEventListener('keydown',e=>{ if(e.key==='+'||e.key==='='){ zoomTarget=Math.min(4,zoomTarget*1.2); lastZoomAt=now(); e.preventDefault(); return; } if(e.key==='-'){ zoomTarget=Math.max(1,zoomTarget/1.2); lastZoomAt=now(); e.preventDefault(); return; }
+    const m={ArrowLeft:[-.08,0],ArrowRight:[.08,0],ArrowUp:[0,.06],ArrowDown:[0,-.06]}[e.key]; if(!m) return; e.preventDefault();
+    state.yaw+=m[0]; state.pitch=Math.max(0.02,Math.min(1.45,state.pitch+m[1])); });
+  /* Der Knopff zum Abschreiben der Stückliste in die Zwischenablage. Verweigert das Gerät die neue Art,
+   * so versuchen wir es auff die alte mit einem unsichtbaren Schreibfelde; schlägt auch das fehl, sagen wir es ehrlich. */
+  $('#copy').addEventListener('click',()=>{ const t=listText(), toast=$('#toast');
+    const done=()=>{toast.textContent='copied'; setTimeout(()=>toast.textContent='',2000);};
+    const fallback=()=>{ const ta=document.createElement('textarea'); ta.value=t; ta.style.position='fixed'; ta.style.opacity='0'; document.body.appendChild(ta); ta.select();
+      try{document.execCommand('copy'); done();}catch(_){toast.textContent="couldn't copy here – select the table and copy it yourself";} document.body.removeChild(ta); };
+    if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(done,fallback); else fallback(); });
+  /* Wird das Fenster größer oder kleiner, so wird die Leinwand neu bemessen; desgleichen, wenn die Schrifften endlich geladen sind. */
+  window.addEventListener('resize',fitCanvas);
+  new ResizeObserver(()=>draw()).observe(canvas);
+  if(document.fonts&&document.fonts.ready) document.fonts.ready.then(()=>{ fitCanvas(); draw(); });
+
+  /* ═════════════════════════════════════════════════════════════════
+   *  Vom Drucken: das Werkstatt-Blatt als PDF
+   * ═════════════════════════════════════════════════════════════════
+   *  Wir bedienen uns der Bibliothek jsPDF, die als Gast von außen kommt. Erste Seite: Bild der Kuppel und Maße;
+   *  zweyte Seite: Stückliste und Tafeln; hernach für jede Sorte eine Zeichnung, gantz wie oben auff der Seite,
+   *  nur mit Linien und Schrifft in Millimetern auff das Blatt gesetzt.
+   */
+  function pdfStrut(doc,c,x,y,W){
+    const R=state.R, al=state.allow/1000, Lc=Math.max(0,c.L*R-2*al)*1000, beta=Math.asin(Math.min(1,c.L/2)), deg=beta*180/Math.PI;
+    const d=state.depth, w=state.width, D=14, k=D/d, off=d*Math.tan(beta)*k;
+    const end=W*0.3, gap=W*0.1, x0=x+8, x1=x0+2*end+gap, y0=y+10, yc=y0+D/2, yd=y0+D+9;
+    doc.setLineWidth(0.25); doc.setDrawColor(122,108,75);
+    doc.line(x0,y0,x0+end,y0); doc.line(x0+off,y0+D,x0+end,y0+D); doc.line(x1,y0,x1-end,y0); doc.line(x1-off,y0+D,x1-end,y0+D);
+    const zig=(xx,dir)=>{ doc.line(xx,y0-1.5,xx+dir,y0+D*0.3); doc.line(xx+dir,y0+D*0.3,xx-dir,y0+D*0.7); doc.line(xx-dir,y0+D*0.7,xx,y0+D+1.5); };
+    zig(x0+end,1); zig(x1-end,-1);
+    doc.setDrawColor(210,83,43); doc.setLineWidth(0.5); doc.line(x0,y0,x0+off,y0+D); doc.line(x1,y0,x1-off,y0+D);
+    doc.setDrawColor(122,108,75); doc.setLineWidth(0.2);
+    doc.setLineDashPattern([2,0.8,0.5,0.8],0); doc.line(x0+off/2-3,yc,x1-off/2+3,yc); doc.setLineDashPattern([],0);
+    doc.line(x0+off/2,y0+D+2,x0+off/2,yd+1.5); doc.line(x1-off/2,y0+D+2,x1-off/2,yd+1.5); doc.line(x0+off/2,yd,x1-off/2,yd);
+    doc.line(x0,y0-2,x0,y0-8); doc.line(x1,y0-2,x1,y0-8); doc.line(x0,y0-6,x1,y0-6);
+    doc.setFontSize(8); doc.setTextColor(46,43,34);
+    doc.text(`${Math.round(Lc)} mm  (centre line, cut length)`,(x0+x1)/2,yd-1.2,{align:'center'});
+    doc.setTextColor(122,108,75); doc.text(`outer face ${Math.round(Lc+d*Math.tan(beta))} mm · inner face ${Math.round(Lc-d*Math.tan(beta))} mm`,(x0+x1)/2,y0-7.2,{align:'center'});
+    doc.setTextColor(210,83,43); doc.text(`end cut ${deg.toFixed(1)}° from square${c.nb?` · bevel ${c.bevel.toFixed(1)}°`:''}`,x0,yd+6);
+    const sx=x1+10, ks=Math.min(16/d,10/w), sw=w*ks, sd=d*ks, sy=yc-sd/2;
+    doc.setDrawColor(122,108,75); doc.setLineWidth(0.25); doc.rect(sx,sy,sw,sd);
+    doc.setTextColor(122,108,75); doc.setFontSize(7); doc.text(`${w}`,sx+sw+1.5,yc+1); doc.text(`${d}`,sx+sw/2,sy+sd+3.5,{align:'center'});
+    doc.setTextColor(46,43,34); doc.setFontSize(13); doc.text(`${c.name}`,x,y0+4); doc.setFontSize(8); doc.text(`× ${cnt(c)}`,x,y0+9);
+    return yd+12;
+  }
+  function exportPDF(){
+    const toast=$('#toast');
+    if(!window.jspdf){ toast.textContent='the PDF library did not load'; return; }
+    const {jsPDF}=window.jspdf; const doc=new jsPDF({unit:'mm',format:'a4'}); const R=state.R, d=dome, al=state.allow/1000;
+    const pw=210, m=16, ink=[46,43,34], mute=[122,108,75], red=[210,83,43], rule=[205,191,154], faint=[226,215,188];
+    let y=0, sec='';
+    const txt=(t,x,yy,o)=>doc.text(String(t),x,yy,o);
+    /* Ein neues Blatt mit Kopfzeile: links das Werck, rechts der Abschnitt. */
+    const page=(title)=>{ doc.addPage(); sec=title; y=22; doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(...mute);
+      txt('Amanita Dome · workshop sheet',m,12); txt(sec,pw-m,12,{align:'right'}); doc.setDrawColor(...rule); doc.setLineWidth(0.3); doc.line(m,14.5,pw-m,14.5);
+      doc.setFontSize(16); doc.setTextColor(...ink); txt(title,m,y); y+=9; };
+    const need=(h)=>{ if(y+h>278){ page(sec); } };
+    const table=(cols,hdr,rows,align)=>{ need(14); doc.setFontSize(7.5); doc.setTextColor(...mute); hdr.forEach((t,i)=>txt(t,cols[i],y,{align:align[i]})); y+=2; doc.setDrawColor(...rule); doc.line(m,y,pw-m,y); y+=5;
+      doc.setFontSize(9); doc.setTextColor(...ink);
+      for(const r of rows){ need(7); r.forEach((t,i)=>txt(t,cols[i],y,{align:align[i]})); doc.setDrawColor(...faint); doc.line(m,y+1.6,pw-m,y+1.6); y+=6; } y+=4; };
+
+    /* Titelblatt */
+    doc.setFontSize(9); doc.setTextColor(...mute); txt('workshop sheet · '+new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'long',year:'numeric'}),m,22);
+    doc.setFontSize(34); doc.setTextColor(...ink); txt('Amanita Dome',m,40);
+    doc.setDrawColor(...red); doc.setLineWidth(0.8); doc.line(m,45,m+40,45);
+    try{ const dpr=canvas.width/canvas.clientWidth, off=document.createElement('canvas'); off.width=Math.round(box.w*dpr); off.height=Math.round(box.h*dpr); off.getContext('2d').drawImage(canvas,box.x*dpr,box.y*dpr,box.w*dpr,box.h*dpr,0,0,off.width,off.height); const img=off.toDataURL('image/png'); let iw=pw-2*m, ih=iw*off.height/off.width; if(ih>120){ih=120; iw=ih*off.width/off.height;} doc.addImage(img,'PNG',(pw-iw)/2,52,iw,ih); y=52+ih+10; }catch(_){ y=60; }
+    doc.setFontSize(12); doc.setTextColor(...ink); txt('Design',m,y); y+=7;
+    const cfg=[['Base solid',cap(state.solid)],['Class',state.cls===2?'II':'I'],['Frequency',nu()+'V'],['Cut',`${fraction(d.zc)} · row ${state.cut+1}`],['On top',cap(state.top)],['Subdivision',state.method==='arcs'?'equal arcs':'equal chords'],['Assembly',triMode()?'triangle frames':'struts & hubs'],['Sphere radius',fm(R,2)+' m'],['Timber section',`${state.width} × ${state.depth} mm`],['Hub allowance',`${state.allow} mm each end`]];
+    doc.setFontSize(9); for(const [k,v] of cfg){ doc.setTextColor(...mute); txt(k,m,y); doc.setTextColor(...ink); txt(v,m+60,y); doc.setDrawColor(...faint); doc.setLineWidth(0.2); doc.line(m,y+1.6,pw/2+10,y+1.6); y+=6; }
+    y+=6; doc.setFontSize(8); doc.setTextColor(...mute); txt('Contents: 1 Measurements · 2 Cut list · 3 Panels · 4 Build sequence · 5 Panel drawings · 6 Strut drawings',m,y);
+
+    /* 1 Maße */
+    page('1 · Measurements'); doc.setFontSize(9);
+    for(const [k,v,u] of measureRows()){ need(7); doc.setTextColor(...mute); txt(k,m,y); doc.setTextColor(...ink); txt(`${v}${u?' '+u:''}`,pw-m,y,{align:'right'}); doc.setDrawColor(...faint); doc.setLineWidth(0.2); doc.line(m,y+1.6,pw-m,y+1.6); y+=6; }
+
+    /* 2 Stückliste */
+    page(`2 · Cut list · ${nStruts()} struts`);
+    table([m,m+22,m+58,m+94,m+130,m+158,pw-m],['strut','chord factor','hub to hub','cut length','end angle','bevel','qty'],
+      d.classes.map(c=>[c.name,fm(c.L,5),fm(c.L*R,3)+' m',fm(Math.max(0,c.L*R-2*al),3)+' m',fm(endAngle(c.L),1)+'°',c.nb?fm(c.bevel,1)+'°':'–',String(cnt(c))]).concat([['all','',fm(totalLen()*R,2)+' m',fm(Math.max(0,totalLen()*R-2*al*nStruts()),2)+' m','','',String(nStruts())]]),
+      ['left','right','right','right','right','right','right']);
+    doc.setFontSize(8); doc.setTextColor(...mute); need(12); txt(triMode()?'Triangle frames: inner edges carry two struts, one per triangle; corners are mitred in the plane of the triangle.':'Cut length = hub to hub minus the allowance at both ends. End angle from square, for a flat hub plate square to the radius.',m,y); y+=10;
+
+    /* 3 Tafeln */
+    doc.setFontSize(16); doc.setTextColor(...ink); need(20); txt(`3 · Panels · ${d.tris.length} triangles`,m,y); y+=9;
+    table([m,m+70,m+120,m+150,pw-m],['panel','sides (m)','area each','qty','area total'],
+      d.panels.map(pn=>[pn.names,pn.sides.map(x=>fm(x*R,3)).join(' · '),fm(pn.area*R*R,3)+' m²',String(pn.count),fm(pn.area*pn.count*R*R,2)+' m²']).concat([['all','','',String(d.tris.length),fm(d.surf*R*R,2)+' m²']]),
+      ['left','right','right','right','right']);
+
+    /* 4 Bauanleitung */
+    page('4 · Build sequence');
+    guideSteps.forEach(([a,b],i)=>{ doc.setFontSize(10); const bl=doc.splitTextToSize(b,pw-2*m-14); need(8+bl.length*4.5+4);
+      doc.setTextColor(...red); txt(String(i+1).padStart(2,'0'),m,y); doc.setTextColor(...ink); txt(a,m+12,y); y+=5;
+      doc.setFontSize(8.5); doc.setTextColor(...mute); doc.text(bl,m+12,y); y+=bl.length*4.2+5; });
+
+    /* 5 Zeichnungen */
+    page('5 · Panel drawings');
+    for(const pn of d.panels){ need(80); y=pdfPanel(doc,pn,m,y,pw-2*m-40)+6; }
+    page('6 · Strut drawings');
+    for(const c of d.classes){ need(52); y=pdfStrut(doc,c,m,y,pw-2*m-30)+6; }
+
+    /* Fußzeilen */
+    const n=doc.getNumberOfPages(); for(let i=1;i<=n;i++){ doc.setPage(i); doc.setFontSize(7); doc.setTextColor(179,170,145); txt(`Amanita Dome · ${describe()} · R ${fm(R,2)} m`,m,292); txt(`${i} / ${n}`,pw-m,292,{align:'right'}); }
+    doc.save('amanita-dome.pdf');
+    toast.textContent='PDF made – if no download appears, open this page as a file in your browser'; setTimeout(()=>toast.textContent='',5000);
+  }
+  $('#pdf').addEventListener('click',exportPDF);
+
+  /* ═════════════════════════════════════════════════════════════════
+   *  Von den sieben Fliegenpilzen und dem Korbe
+   * ═════════════════════════════════════════════════════════════════
+   *  Über die Seite sind sieben kleine Fliegenpilze verstreuet. Wer einen findet, mag ihn mit der Maus oder dem
+   *  Finger packen und in den Korb unten rechts legen. Ein jeder Pilz im Korbe schenket der Seite für ein paar
+   *  Athemzüge einen Rausch: die Farben wandern durch den Regenbogen, das Blatt wogt und athmet. Sind alle sieben
+   *  beysammen, so bleibet der Rausch, gemächlicher zwar, aber für immer – oder bis der Speicher geleeret wird.
+   */
+  const shrooms=[...document.querySelectorAll('.shroom')], basket=$('#basket'), bcount=$('#bcount');
+  const got=new Set(); try{ const st=JSON.parse(localStorage.getItem('amanita-basket')||'[]'); if(st.length<7) st.forEach(i=>got.add(String(i))); }catch(_){}
+  function applyGot(regrow){ shrooms.forEach(s=>{ const gone=got.has(s.dataset.id); if(regrow&&s.classList.contains('gone')&&!gone){ s.classList.add('regrow'); setTimeout(()=>s.classList.remove('regrow'),1300); } s.classList.toggle('gone',gone); }); bcount.textContent=`${got.size}/7`; }
+  /* Der Rausch: ein Pilz gibt 2,8 Secunden; der siebente gibt drey Minuten. Danach ist der Korb leer, die Pilze
+   * wachsen an ihren alten Stellen wieder nach, und das Spiel kann von vorne beginnen. */
+  function trip(){ if(reduce) return; document.body.classList.add('trip'); clearTimeout(trip.t);
+    if(got.size>=7){ document.body.classList.add('forever');
+      trip.t=setTimeout(()=>{ document.body.classList.remove('trip','forever'); got.clear(); try{ localStorage.removeItem('amanita-basket'); }catch(_){} applyGot(true); },180000); return; }
+    trip.t=setTimeout(()=>document.body.classList.remove('trip'),2800); }   // Nach 2,8 Secunden kehret die Nüchternheit zurück.
+  shrooms.forEach(s=>{ s.addEventListener('pointerdown',e=>{ if(got.has(s.dataset.id)) return; e.preventDefault();
+    const ghost=s.cloneNode(true); ghost.classList.add('ghost'); ghost.classList.remove('gone'); document.body.appendChild(ghost); document.body.classList.add('carrying');
+    const over=ev=>{ const b=basket.getBoundingClientRect(); return ev.clientX>=b.left-14&&ev.clientX<=b.right+14&&ev.clientY>=b.top-14&&ev.clientY<=b.bottom+14; };
+    const move=ev=>{ ghost.style.left=ev.clientX+'px'; ghost.style.top=ev.clientY+'px'; basket.classList.toggle('near',over(ev)); };
+    const up=ev=>{ window.removeEventListener('pointermove',move); window.removeEventListener('pointerup',up); window.removeEventListener('pointercancel',up);
+      ghost.remove(); basket.classList.remove('near'); document.body.classList.remove('carrying');
+      if(ev.type==='pointerup'&&over(ev)){ got.add(s.dataset.id); try{ localStorage.setItem('amanita-basket',JSON.stringify([...got])); }catch(_){} applyGot(); trip(); } };
+    move(e); window.addEventListener('pointermove',move); window.addEventListener('pointerup',up); window.addEventListener('pointercancel',up); }); });
+  applyGot(false);
+
+  /* Und hiermit hebet alles an: die Kugel wird gebauet, geschnitten, ausgegeben und der Reigen beginnet. */
+  rebuildBase(); update(); fitCanvas(); requestAnimationFrame(fitCanvas); loop();
+})();
+/*
+ *   Ende des Wercks. Wer es lieset und darinnen einen Fehler findet,
+ *   der bessere ihn aus und sage es niemandem, daß er ihn gefunden hat.
+ */
+</script>
+</body>
+</html>
