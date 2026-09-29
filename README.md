@@ -4,6 +4,8 @@
 
 ### a geodesic dome configurator that fits in one HTML file and grows out of the forest floor
 
+**Free geodesic dome calculator** · cut lists with chord factors, end angles and bevels · panel and strut drawings · animated build guide · PDF workshop sheet · runs in any browser, no install
+
 **[▶ open the live dome](https://goallthepath.github.io/AmanitaDome/)** · [watch the tour (mp4)](docs/amanita-dome-tour.mp4) · [the file itself](index.html)
 
 ![single file](https://img.shields.io/badge/files-1-D2532B?style=flat-square)
@@ -39,6 +41,10 @@
 - 📐 **strut drawings.** Workshop elevations with break lines, the angled end cuts, the outer and inner face lengths, and a cross-section.
 - 📄 **a PDF workshop sheet.** A cover page with a render of the dome and the configuration, then measurements, cut list, panels, build sequence, and panel and strut drawings. It's all generated in the browser; nothing is uploaded.
 - 🧺 **a basket.** Leave it alone. Or don't.
+
+## who it's for
+
+Anyone who wants to build a dome and doesn't want to do the trigonometry by hand: **garden domes and greenhouses**, **festival and glamping domes**, **climbing frames**, **off-grid shelters**, **sauna and studio domes**, makers checking a **2V, 3V, 4V or 5V dome** before buying timber, and teachers who want to show what an icosahedron turns into when you keep dividing it.
 
 ## the knobs
 
@@ -183,6 +189,12 @@ The page stops coming down. For a while.
 
 ---
 
+## 🇩🇪 auf deutsch
+
+**Amanita Dome ist ein kostenloser Kuppelrechner für geodätische Kuppeln, der direkt im Browser läuft.** Man wählt Grundkörper (Ikosaeder, Oktaeder, Tetraeder), Klasse I oder II, Frequenz (1V bis 12V), Schnitthöhe (½-, ⅝-, ¾-Kuppel …), Radius und Holzquerschnitt. Heraus kommen eine Stückliste mit Sehnenfaktoren, Schnittlängen, Endwinkeln und Fasen, massstäbliche Zeichnungen aller Dreiecke und Streben, eine Bauanleitung Reihe für Reihe, eine Animation, die die Kuppel Strebe für Strebe aufbaut, und ein Werkstattblatt als PDF. Die Kommentare im Quelltext sind übrigens in frühneuhochdeutscher Sprache geschrieben, wie ein Rechenbüchlein aus dem 17. Jahrhundert.
+
+Ideal für Gewächshaus-Kuppeln, Gartenkuppeln, Festival- und Glamping-Domes, Klettergerüste und alle, die eine **Geodesic Dome** selbst bauen wollen.
+
 ## run it
 
 **Online:** https://goallthepath.github.io/AmanitaDome/ (served by GitHub Pages straight from `main`).
@@ -206,6 +218,6 @@ The numbers are geometry, not engineering. Check loads, snow, wind, fixings and 
 
 <div align="center">
 
-© 2026 goallthepath · MIT licensed · grown on the forest floor 🍄
+© 2026 [goallthepath](https://github.com/goallthepath) · MIT licensed · grown on the forest floor 🍄
 
 </div>
